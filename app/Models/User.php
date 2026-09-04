@@ -12,25 +12,17 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    protected $primaryKey = 'user_id';
+
     protected $fillable = [
-        'name',
+        'nama',
         'email',
         'password',
         'no_hp',
         'alamat',
         'role',
     ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
+    public $timestamps = false;
     protected $hidden = [
         'password',
         'remember_token',
@@ -57,5 +49,9 @@ class User extends Authenticatable
     public function bookingsDitangani()
     {
         return $this->hasMany(Booking::class, 'diberikan_oleh', 'user_id');
+    }
+    public function getRememberTokenName()
+    {
+        return null;
     }
 }
