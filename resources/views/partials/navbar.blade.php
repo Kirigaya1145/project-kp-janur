@@ -1,6 +1,9 @@
 <nav class="navbar navbar-expand-lg navbar-janur sticky-top py-3">
     <div class="container">
-        <a class="navbar-brand" href="{{ url('/') }}">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
+            @if(!empty($companyProfile->logo ?? null))
+                <img src="{{ asset($companyProfile->logo) }}" alt="Logo" style="height: 36px;">
+            @endif
             PT Janur Tangguh Abadi
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">

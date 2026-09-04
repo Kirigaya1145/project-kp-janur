@@ -9,6 +9,6 @@ class CompanyProfile extends Model
     protected $primaryKey = 'profile_id';
 
     protected $fillable = [
-        'nama_perusahaan', 'visi', 'misi', 'sejarah', 'alamat', 'email', 'telepon',
+        'nama_perusahaan', 'logo', 'visi', 'misi', 'sejarah', 'alamat', 'email', 'telepon',
     ];
 }

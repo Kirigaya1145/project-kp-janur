@@ -15,7 +15,7 @@ class ViewComposerServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        View::composer('partials.footer', function ($view) {
+        View::composer('partials.footer' , 'partials.navbar', function ($view) {
             $view->with('companyProfile', CompanyProfile::first());
         });
     }
