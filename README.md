@@ -1,66 +1,182 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PT Janur Tangguh Abadi — Sistem Booking Pengiriman Laut
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web berbasis Laravel untuk mengelola alur booking pengiriman container laut: mulai dari pengajuan booking oleh customer, penawaran harga oleh staff/admin, penerbitan invoice, verifikasi pembayaran, hingga pelacakan progres pengiriman (surat jalan & data container/vessel).
 
-## About Laravel
+## Daftar Isi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- [Fitur Utama](#fitur-utama)
+- [Alur Booking](#alur-booking)
+- [Role & Akun Default](#role--akun-default)
+- [Tech Stack](#tech-stack)
+- [Instalasi](#instalasi)
+- [Struktur Database](#struktur-database)
+- [Rute Utama](#rute-utama)
+- [Struktur Folder Penting](#struktur-folder-penting)
+- [Catatan Pengembangan](#catatan-pengembangan)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Fitur Utama
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Customer
+- Registrasi & login
+- Ajukan booking pengiriman (pilih rute, tanggal kirim, jumlah container, daftar barang) lengkap dengan estimasi harga otomatis (real-time di form)
+- Cek status booking tanpa login lewat kode booking (`/booking/cek`)
+- Lihat riwayat seluruh booking miliknya (`/booking/riwayat`, perlu login)
+- Setujui/tolak penawaran harga final dari admin
+- Unggah bukti pembayaran
+- Unduh invoice dalam format PDF
 
-## Learning Laravel
+### Admin / Staff
+- Dashboard berisi seluruh booking dari semua customer, dengan ringkasan jumlah per tahap status
+- Kelola master data rute & harga dasar per kg
+- Beri penawaran harga final ke customer
+- Terbitkan/lihat invoice
+- Verifikasi atau tolak bukti pembayaran yang diunggah customer
+- Input detail operasional (JOA number, container, shipping line, vessel, ETD/ETA) dan surat jalan
+- Update progres pengiriman (dalam pengiriman → diterima → selesai, atau dibatalkan)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Alur Booking
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Status booking disederhanakan menjadi 6 tahap yang ditampilkan ke pengguna (`Booking::statusSederhana()`):
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```
+Menunggu Penawaran → Menunggu Konfirmasi → Menunggu Pembayaran
+→ Verifikasi Pembayaran → Proses Pengiriman → Selesai
+```
 
-## Laravel Sponsors
+Cabang lain yang bisa terjadi di luar jalur utama: **Penawaran Ditolak** (customer menolak harga) dan **Dibatalkan** (admin membatalkan booking).
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+Ringkas per tahap:
 
-### Premium Partners
+1. Customer mengajukan booking → status `menunggu_penawaran`.
+2. Admin/staff memberi harga final → status `menunggu_konfirmasi_customer`.
+3. Customer menyetujui → invoice otomatis diterbitkan, status `menunggu_pembayaran`. Customer menolak → status `penawaran_ditolak`.
+4. Customer mengunggah bukti bayar → status `menunggu_verifikasi_pembayaran`.
+5. Admin memverifikasi → `siap_operasional` (disetujui) atau `pembayaran_ditolak` (ditolak, customer perlu unggah ulang).
+6. Admin melengkapi data operasional & mengupdate progres → `dalam_pengiriman` → `diterima` → `selesai` (atau `dibatalkan` di titik mana pun sebelum selesai).
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+## Role & Akun Default
 
-## Contributing
+Tiga role: `admin`, `staff`, `customer`. Akun awal dibuat lewat `DatabaseSeeder`:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@janurtangguhabadi.com | password |
+| Staff | staff@janurtangguhabadi.com | password |
+| Customer | customer@example.com | password |
 
-## Code of Conduct
+> Ganti password akun-akun ini sebelum digunakan di lingkungan produksi.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Tech Stack
 
-## Security Vulnerabilities
+- **Backend:** Laravel (PHP)
+- **Autentikasi:** `laravel/ui` (Login, Register, Forgot/Reset Password, Email Verification)
+- **View:** Blade + Bootstrap 5, Bootstrap Icons
+- **Build asset:** Vite (`resources/sass/app.scss`, `resources/js/app.js`)
+- **PDF invoice:** [Dompdf](https://github.com/dompdf/dompdf)
+- **Database:** MySQL (via Eloquent ORM)
+- **API token (opsional):** Laravel Sanctum
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Instalasi
 
-## License
+```bash
+# 1. Clone & masuk folder proyek
+cd project-kp-janur
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 2. Install dependency PHP & JS
+composer install
+npm install
+
+# 3. Salin file environment lalu sesuaikan koneksi database
+cp .env.example .env
+php artisan key:generate
+
+# 4. Jalankan migrasi + seeder (akun default & data rute contoh)
+php artisan migrate --seed
+
+# 5. Buat symlink storage (wajib, untuk file bukti pembayaran & logo perusahaan)
+php artisan storage:link
+
+# 6. Build asset frontend
+npm run build
+# atau untuk mode development:
+npm run dev
+
+# 7. Jalankan server
+php artisan serve
+```
+
+Pastikan `.env` sudah berisi konfigurasi database yang benar (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) sebelum menjalankan migrasi.
+
+## Struktur Database
+
+Tabel inti yang dipakai alur bisnis (dibuat lewat `2026_09_04_060000_create_booking_workflow_tables.php`):
+
+| Tabel | Keterangan |
+|---|---|
+| `users` | Akun admin/staff/customer |
+| `rute_harga` | Master rute & harga dasar per kg |
+| `bookings` | Data utama booking |
+| `booking_barang` | Rincian barang per booking |
+| `invoice` | Invoice yang diterbitkan per booking |
+| `bukti_pembayaran` | Bukti transfer yang diunggah customer |
+| `booking_container` | Detail container & vessel |
+| `surat_jalan` | Detail surat jalan pengiriman |
+| `status_bookings` | Log riwayat perubahan status |
+| `company_profiles` | Profil perusahaan (ditampilkan di landing page & invoice) |
+
+## Rute Utama
+
+**Publik**
+- `GET /` — landing page
+- `GET /tentang` — tentang perusahaan
+- `GET /booking/cek`, `POST /booking/cek` — cek status booking via kode
+
+**Customer (perlu login)**
+- `GET/POST /booking` — form & submit booking baru
+- `GET /booking/riwayat` — daftar booking milik sendiri
+- `POST /booking/{booking}/konfirmasi-penawaran` — setuju/tolak penawaran
+- `POST /invoice/{invoice}/bukti-pembayaran` — unggah bukti bayar
+- `GET /invoice/{invoice}/pdf` — unduh invoice PDF
+
+**Admin/Staff** (prefix `/admin`, middleware `role:admin,staff`)
+- `GET /admin/dashboard` — daftar semua booking
+- `GET/POST /admin/rute` — kelola rute & harga dasar
+- `GET /admin/booking/{booking}` — detail & kelola booking
+- `POST /admin/booking/{booking}/penawaran` — kirim penawaran harga
+- `POST /admin/booking/{booking}/invoice` — terbitkan invoice manual
+- `POST /admin/booking/{booking}/operasional` — simpan data container & surat jalan
+- `POST /admin/booking/{booking}/progress` — update progres pengiriman
+- `POST /admin/bukti-pembayaran/{bukti}/verifikasi` — verifikasi/tolak bukti bayar
+
+## Struktur Folder Penting
+
+```
+app/
+  Http/Controllers/
+    AdminBookingController.php   # semua aksi sisi admin/staff
+    BookingController.php        # semua aksi sisi customer
+    Auth/                        # scaffolding login/register/reset password
+  Models/                        # Booking, Invoice, RuteHarga, dll.
+resources/views/
+  admin/                         # dashboard, kelola rute, detail booking admin
+  pages/                         # landing page, form booking, cek/riwayat booking
+  pdf/invoice.blade.php          # template invoice untuk Dompdf
+  layouts/app.blade.php          # layout utama (navbar, footer, styling)
+database/
+  migrations/
+  seeders/DatabaseSeeder.php     # akun default & data rute contoh
+routes/web.php                   # seluruh rute aplikasi
+```
+
+## Catatan Pengembangan
+
+Beberapa hal yang masih bisa disederhanakan/dibenahi ke depan:
+
+- Kolom `status_harga` pada tabel `bookings` sudah tidak lagi jadi sumber kebenaran utama sejak status booking mulai memakai `status_booking` yang lebih lengkap — berpotensi disatukan.
+- Belum ada notifikasi otomatis (email/WA) ke customer saat status berubah (penawaran keluar, pembayaran diverifikasi, progres update) — saat ini customer harus mengecek manual.
+- Ada dua migration untuk tabel password reset (`password_resets` dan `password_reset_tokens`) — hanya satu yang aktif dipakai sesuai konfigurasi `auth.php`, migration yang lain sisa versi lama Laravel.
+- Endpoint `admin/booking/{booking}/invoice` (invoice manual) belum punya form pemicu di UI — saat ini invoice selalu dibuat otomatis saat customer menyetujui penawaran.
+
+---
+
+&copy; PT Janur Tangguh Abadi
