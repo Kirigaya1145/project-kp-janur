@@ -17,7 +17,8 @@ class AdminBookingController extends Controller
     public function dashboard()
     {
         $bookings = Booking::with(['rute', 'barang', 'latestInvoice.buktiPembayaran'])
-            ->latest('booking_id')
+            ->orderByDesc('tanggal_booking')
+            ->orderByDesc('booking_id')
             ->get();
 
         return view('admin.dashboard', compact('bookings'));
@@ -172,20 +173,33 @@ class AdminBookingController extends Controller
         ]);
 
         $containerData = collect($validated)->only([
-            'joa_number', 'no_container', 'shipping_line', 'feeder_vessel',
-            'connecting_vessel', 'destination', 'stuff_date', 'etd', 'eta',
+            'joa_number',
+            'no_container',
+            'shipping_line',
+            'feeder_vessel',
+            'connecting_vessel',
+            'destination',
+            'stuff_date',
+            'etd',
+            'eta',
         ])->all();
 
         $suratJalanData = collect($validated)->only([
-            'no_surat_jalan', 'tanggal', 'kendaraan', 'nopol_kendaraan',
-            'nama_sopir', 'penerima_kepada', 'lokasi_penerima', 'nama_pengirim',
+            'no_surat_jalan',
+            'tanggal',
+            'kendaraan',
+            'nopol_kendaraan',
+            'nama_sopir',
+            'penerima_kepada',
+            'lokasi_penerima',
+            'nama_pengirim',
         ])->all();
 
         if (collect($containerData)->filter()->isNotEmpty()) {
             BookingContainer::updateOrCreate(['booking_id' => $booking->booking_id], $containerData);
         }
 
-        if (! empty($suratJalanData['no_surat_jalan'])) {
+        if (!empty($suratJalanData['no_surat_jalan'])) {
             SuratJalan::updateOrCreate(['booking_id' => $booking->booking_id], $suratJalanData);
         }
 
