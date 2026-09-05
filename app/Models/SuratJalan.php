@@ -8,6 +8,7 @@ class SuratJalan extends Model
 {
     protected $table = 'surat_jalan';
     protected $primaryKey = 'surat_jalan_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'no_surat_jalan', 'booking_id', 'tanggal', 'kendaraan', 'nopol_kendaraan',

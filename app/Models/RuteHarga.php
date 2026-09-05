@@ -8,6 +8,7 @@ class RuteHarga extends Model
 {
     protected $table = 'rute_harga';
     protected $primaryKey = 'rute_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'pelabuhan_asal', 'pelabuhan_tujuan', 'harga_dasar', 'keterangan',

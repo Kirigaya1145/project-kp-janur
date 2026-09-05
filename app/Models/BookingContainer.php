@@ -8,6 +8,7 @@ class BookingContainer extends Model
 {
     protected $table = 'booking_container';
     protected $primaryKey = 'container_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'booking_id', 'joa_number', 'no_container', 'shipping_line',

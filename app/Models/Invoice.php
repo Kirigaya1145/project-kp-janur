@@ -8,6 +8,7 @@ class Invoice extends Model
 {
     protected $table = 'invoice';
     protected $primaryKey = 'invoice_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'no_invoice', 'booking_id', 'tanggal_invoice', 'subtotal', 'ppn_persen',

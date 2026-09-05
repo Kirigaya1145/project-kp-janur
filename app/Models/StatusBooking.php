@@ -8,6 +8,7 @@ class StatusBooking extends Model
 {
     protected $table = 'status_bookings';
     protected $primaryKey = 'status_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'booking_id', 'updated_by', 'status', 'keterangan',

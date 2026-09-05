@@ -8,6 +8,7 @@ class BookingBarang extends Model
 {
     protected $table = 'booking_barang';
     protected $primaryKey = 'booking_barang_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'booking_id', 'kategori_barang', 'nama_barang', 'qty', 'berat_kg', 'keterangan',

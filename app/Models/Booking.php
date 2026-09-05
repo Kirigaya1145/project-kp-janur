@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     protected $primaryKey = 'booking_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'kode_booking', 'user_id', 'nama_customer', 'email_customer', 'no_hp_customer',
         'rute_id', 'harga_estimasi', 'harga_final', 'status_harga', 'diberikan_oleh',
         'tanggal_konfirmasi', 'estimasi_waktu', 'tanggal_booking', 'tanggal_pengiriman',
         'waktu_muat', 'jumlah_container', 'asal', 'tujuan', 'total_harga',
+        'status_booking',
     ];
 
     protected $casts = [
@@ -60,5 +62,15 @@ class Booking extends Model
     public function invoice()
     {
         return $this->hasMany(Invoice::class, 'booking_id', 'booking_id');
+    }
+
+    public function latestInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'booking_id', 'booking_id')->latestOfMany('invoice_id');
+    }
+
+    public function totalBerat(): float
+    {
+        return (float) $this->barang->sum(fn ($item) => (float) $item->berat_kg);
     }
 }

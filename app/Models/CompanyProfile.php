@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CompanyProfile extends Model
 {
     protected $primaryKey = 'profile_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'nama_perusahaan', 'logo', 'visi', 'misi', 'sejarah', 'alamat', 'email', 'telepon',

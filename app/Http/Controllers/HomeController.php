@@ -23,6 +23,10 @@ class HomeController extends Controller
      */
     public function index()
     {
+        if (auth()->user() && in_array(auth()->user()->role, ['admin', 'staff'], true)) {
+            return redirect()->route('admin.dashboard');
+        }
+
         return view('home');
     }
 }

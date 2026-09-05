@@ -1,9 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-janur sticky-top py-3">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
-            @if(!empty($companyProfile->logo ?? null))
-                <img src="{{ asset($companyProfile->logo) }}" alt="Logo" style="height: 36px;">
-            @endif
+            <img src="{{ asset($companyProfile->logo ?? 'images/logo-janur-nobg.png') }}" alt="Logo PT Janur Tangguh Abadi" style="height: 42px; width: auto;">
             PT Janur Tangguh Abadi
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
@@ -19,10 +17,7 @@
                     <a class="nav-link {{ request()->is('tentang') ? 'active' : '' }}" href="{{ url('/tentang') }}">Tentang</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->is('program') ? 'active' : '' }}" href="{{ url('/program') }}">Layanan</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->is('staff') ? 'active' : '' }}" href="{{ url('/staff') }}">Staff</a>
+                    <a class="nav-link {{ request()->is('booking') ? 'active' : '' }}" href="{{ url('/booking') }}">Booking</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->is('booking/cek*') ? 'active' : '' }}" href="{{ url('/booking/cek') }}">Cek Booking</a>

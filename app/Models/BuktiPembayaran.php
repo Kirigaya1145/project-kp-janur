@@ -8,6 +8,7 @@ class BuktiPembayaran extends Model
 {
     protected $table = 'bukti_pembayaran';
     protected $primaryKey = 'bukti_id';
+    public $timestamps = false;
 
     protected $fillable = [
         'invoice_id', 'jumlah_bayar', 'file_bukti', 'tanggal_upload',
