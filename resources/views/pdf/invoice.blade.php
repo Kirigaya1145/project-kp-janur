@@ -4,7 +4,7 @@
     $origin = $booking->asal ?: optional($booking->rute)->pelabuhan_asal;
     $destination = $booking->tujuan ?: optional($booking->rute)->pelabuhan_tujuan;
     $preferredLogo = public_path($company->logo ?? 'images/logo-janur-nobg.png');
-    $fallbackLogo = public_path('images/logo-janur-nobg.jpeg');
+    $fallbackLogo = public_path('images/logo-janur-nobg.png');
     $logoSrc = function_exists('imagecreatefrompng') && file_exists($preferredLogo) ? $preferredLogo : $fallbackLogo;
     $money = fn ($value) => number_format((float) $value, 2, ',', '.');
     $shortDate = fn ($date) => $date ? $date->format('j-M-y') : '-';
