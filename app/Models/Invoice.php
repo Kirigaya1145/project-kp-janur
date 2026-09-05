@@ -15,6 +15,11 @@ class Invoice extends Model
         'ppn_nominal', 'total_bayar', 'terms', 'status_bayar', 'tanggal_lunas', 'catatan',
     ];
 
+    protected $casts = [
+        'tanggal_invoice' => 'date',
+        'tanggal_lunas' => 'date',
+    ];
+
     public function booking()
     {
         return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');

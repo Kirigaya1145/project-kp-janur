@@ -5,6 +5,8 @@ use App\Models\Booking;
 use App\Models\BuktiPembayaran;
 use App\Models\Invoice;
 use App\Models\RuteHarga;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -143,17 +145,20 @@ class BookingController extends Controller
             DB::transaction(function () use ($booking) {
                 $booking->update([
                     'status_harga' => 'dikonfirmasi_customer',
-                    'status_booking' => 'menunggu_invoice',
+                    'status_booking' => 'menunggu_pembayaran',
                     'tanggal_konfirmasi' => now(),
                 ]);
+
+                $this->createInvoiceForBooking($booking);
+
                 $booking->statusHistory()->create([
                     'updated_by' => Auth::id(),
                     'status' => 'diproses',
-                    'keterangan' => 'Customer menyetujui penawaran harga final.',
+                    'keterangan' => 'Customer menyetujui penawaran. Invoice otomatis diterbitkan.',
                 ]);
             });
 
-            return back()->with('success', 'Penawaran disetujui. Invoice akan diterbitkan oleh staff.');
+            return back()->with('success', 'Penawaran disetujui. Invoice sudah tersedia untuk pembayaran.');
         }
 
         $booking->update([
@@ -189,11 +194,58 @@ class BookingController extends Controller
         return back()->with('success', 'Bukti pembayaran berhasil diunggah dan menunggu verifikasi admin.');
     }
 
+    public function downloadInvoice(Invoice $invoice)
+    {
+        $invoice->load(['booking.rute', 'booking.barang', 'booking.container', 'booking.suratJalan']);
+        $booking = $invoice->booking;
+
+        abort_unless($booking && (Auth::id() === $booking->user_id || in_array(Auth::user()->role, ['admin', 'staff'], true)), 403);
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('chroot', public_path());
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml(view('pdf.invoice', compact('invoice', 'booking'))->render());
+        $dompdf->setPaper('a4', 'landscape');
+        $dompdf->render();
+
+        $filename = 'invoice-' . str_replace(['/', '\\'], '-', $invoice->no_invoice) . '.pdf';
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
+
     private function generateKodeBooking()
     {
         $lastId = (Booking::max('booking_id') ?? 0) + 1;
 
         return 'BKJ-' . str_pad($lastId, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function createInvoiceForBooking(Booking $booking): void
+    {
+        $subtotal = (float) $booking->harga_final;
+        $ppnPersen = 1.1;
+        $ppnNominal = $subtotal * ($ppnPersen / 100);
+
+        Invoice::updateOrCreate(
+            ['booking_id' => $booking->booking_id],
+            [
+                'no_invoice' => str_replace('BKJ-', 'INV-', $booking->kode_booking) . '/' . now()->format('Y'),
+                'tanggal_invoice' => now()->toDateString(),
+                'subtotal' => $subtotal,
+                'ppn_persen' => $ppnPersen,
+                'ppn_nominal' => $ppnNominal,
+                'total_bayar' => $subtotal + $ppnNominal,
+                'terms' => 'CASH',
+                'status_bayar' => 'belum_lunas',
+                'catatan' => 'Invoice otomatis setelah customer menyetujui penawaran.',
+            ]
+        );
     }
 
 }

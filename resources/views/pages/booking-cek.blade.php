@@ -3,22 +3,6 @@
 @section('title', 'Cek Booking')
 
 @section('content')
-@php
-    $statusLabel = [
-        'menunggu_penawaran' => 'Menunggu Penawaran',
-        'menunggu_konfirmasi_customer' => 'Menunggu Konfirmasi Customer',
-        'menunggu_invoice' => 'Menunggu Invoice',
-        'menunggu_pembayaran' => 'Menunggu Pembayaran',
-        'menunggu_verifikasi_pembayaran' => 'Menunggu Verifikasi Pembayaran',
-        'pembayaran_ditolak' => 'Pembayaran Ditolak',
-        'siap_operasional' => 'Siap Operasional',
-        'dalam_pengiriman' => 'Dalam Pengiriman',
-        'diterima' => 'Diterima',
-        'selesai' => 'Selesai',
-        'dibatalkan' => 'Dibatalkan',
-        'penawaran_ditolak' => 'Penawaran Ditolak',
-    ];
-@endphp
 <section class="section-soft py-5">
     <div class="container">
         <div class="bg-white border rounded-3 p-4 mb-4">
@@ -43,9 +27,14 @@
                                 <h2 class="h4 text-navy mb-1">{{ $booking->kode_booking }}</h2>
                                 <p class="text-steel mb-0">{{ $booking->asal }} - {{ $booking->tujuan }}</p>
                             </div>
-                            <span class="badge text-bg-primary">{{ $statusLabel[$booking->status_booking] ?? $statusLabel[$booking->status_harga] ?? $booking->status_harga }}</span>
+                            <span class="badge text-bg-primary">{{ $booking->statusSederhana() }}</span>
                         </div>
                         <hr>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            @foreach (['Menunggu Penawaran', 'Menunggu Konfirmasi', 'Menunggu Pembayaran', 'Verifikasi Pembayaran', 'Proses Pengiriman', 'Selesai'] as $step)
+                                <span class="badge rounded-pill {{ $booking->statusSederhana() === $step ? 'text-bg-primary' : 'text-bg-light border text-secondary' }}">{{ $step }}</span>
+                            @endforeach
+                        </div>
                         <div class="row g-3">
                             <div class="col-md-4"><div class="small text-steel">Estimasi Awal</div><strong>Rp {{ number_format($booking->harga_estimasi ?? 0, 0, ',', '.') }}</strong></div>
                             <div class="col-md-4"><div class="small text-steel">Harga Final</div><strong>Rp {{ number_format($booking->harga_final ?? 0, 0, ',', '.') }}</strong></div>
@@ -57,6 +46,7 @@
                         <div class="bg-white border rounded-3 p-4 mb-4">
                             <h3 class="h5 text-navy">Konfirmasi Penawaran</h3>
                             <p class="text-steel">Harga final yang ditawarkan: <strong>Rp {{ number_format($booking->harga_final, 0, ',', '.') }}</strong></p>
+                            <p class="small text-steel">Jika disetujui, invoice otomatis dibuat dan Anda bisa langsung mengunggah bukti pembayaran.</p>
                             <form method="POST" action="{{ route('booking.confirm-offer', $booking) }}" class="d-inline">
                                 @csrf
                                 <input type="hidden" name="keputusan" value="setuju">
@@ -72,11 +62,18 @@
 
                     @if ($booking->latestInvoice)
                         <div class="bg-white border rounded-3 p-4 mb-4">
-                            <h3 class="h5 text-navy">Invoice</h3>
+                            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+                                <h3 class="h5 text-navy mb-0">Invoice</h3>
+                                <a href="{{ route('invoice.pdf', $booking->latestInvoice) }}" target="_blank" class="btn btn-sm btn-outline-accent">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF
+                                </a>
+                            </div>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4"><div class="small text-steel">No Invoice</div><strong>{{ $booking->latestInvoice->no_invoice }}</strong></div>
                                 <div class="col-md-4"><div class="small text-steel">Total Bayar</div><strong>Rp {{ number_format($booking->latestInvoice->total_bayar, 0, ',', '.') }}</strong></div>
                                 <div class="col-md-4"><div class="small text-steel">Status</div><span class="badge text-bg-{{ $booking->latestInvoice->status_bayar === 'lunas' ? 'success' : 'warning' }}">{{ str_replace('_', ' ', $booking->latestInvoice->status_bayar) }}</span></div>
+                                <div class="col-md-4"><div class="small text-steel">Subtotal</div><strong>Rp {{ number_format($booking->latestInvoice->subtotal, 0, ',', '.') }}</strong></div>
+                                <div class="col-md-4"><div class="small text-steel">PPN {{ number_format($booking->latestInvoice->ppn_persen, 2, ',', '.') }}%</div><strong>Rp {{ number_format($booking->latestInvoice->ppn_nominal, 0, ',', '.') }}</strong></div>
                             </div>
                             @if (Auth::check() && Auth::id() === $booking->user_id && $booking->latestInvoice->status_bayar !== 'lunas')
                                 <form method="POST" action="{{ route('invoice.upload-payment', $booking->latestInvoice) }}" enctype="multipart/form-data" class="row g-3">

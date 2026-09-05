@@ -17,9 +17,14 @@
             <div class="col-lg-8">
                 <div class="bg-white border rounded-3 p-4 mb-4">
                     <h2 class="h5 text-navy">Ringkasan Booking</h2>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        @foreach (['Menunggu Penawaran', 'Menunggu Konfirmasi', 'Menunggu Pembayaran', 'Verifikasi Pembayaran', 'Proses Pengiriman', 'Selesai'] as $step)
+                            <span class="badge rounded-pill {{ $booking->statusSederhana() === $step ? 'text-bg-primary' : 'text-bg-light border text-secondary' }}">{{ $step }}</span>
+                        @endforeach
+                    </div>
                     <div class="row g-3">
-                        <div class="col-md-3"><div class="small text-steel">Status Harga</div><strong>{{ str_replace('_', ' ', $booking->status_harga) }}</strong></div>
-                        <div class="col-md-3"><div class="small text-steel">Status Booking</div><strong>{{ str_replace('_', ' ', $booking->status_booking ?? '-') }}</strong></div>
+                        <div class="col-md-3"><div class="small text-steel">Status</div><strong>{{ $booking->statusSederhana() }}</strong></div>
+                        <div class="col-md-3"><div class="small text-steel">Status Internal</div><strong>{{ str_replace('_', ' ', $booking->status_booking ?? '-') }}</strong></div>
                         <div class="col-md-3"><div class="small text-steel">Total Berat</div><strong>{{ number_format($booking->totalBerat(), 2, ',', '.') }} kg</strong></div>
                         <div class="col-md-3"><div class="small text-steel">Tanggal Kirim</div><strong>{{ optional($booking->tanggal_pengiriman)->format('d/m/Y') }}</strong></div>
                         <div class="col-md-6"><div class="small text-steel">Estimasi Awal</div><strong>Rp {{ number_format($booking->harga_estimasi ?? 0, 0, ',', '.') }}</strong></div>
@@ -79,27 +84,26 @@
                     <button class="btn btn-accent w-100">Kirim Penawaran</button>
                 </form>
 
-                <form method="POST" action="{{ route('admin.booking.invoice', $booking) }}" class="bg-white border rounded-3 p-4 mb-4">
-                    @csrf
-                    <h2 class="h5 text-navy">Terbitkan Invoice</h2>
-                    <div class="mb-3">
-                        <label class="form-label">Tanggal Invoice</label>
-                        <input type="date" name="tanggal_invoice" class="form-control" value="{{ old('tanggal_invoice', now()->toDateString()) }}" required>
+                <div class="bg-white border rounded-3 p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
+                        <h2 class="h5 text-navy mb-0">Invoice</h2>
+                        @if ($booking->latestInvoice)
+                            <a href="{{ route('invoice.pdf', $booking->latestInvoice) }}" target="_blank" class="btn btn-sm btn-outline-accent">
+                                <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                            </a>
+                        @endif
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">PPN Persen</label>
-                        <input type="number" name="ppn_persen" class="form-control" value="{{ old('ppn_persen', 11) }}" min="0" step="0.01" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Terms</label>
-                        <input type="text" name="terms" class="form-control" value="{{ old('terms', 'CASH') }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Catatan</label>
-                        <textarea name="catatan" class="form-control" rows="2">{{ old('catatan') }}</textarea>
-                    </div>
-                    <button class="btn btn-outline-accent w-100" @disabled($booking->status_harga !== 'dikonfirmasi_customer')>Terbitkan Invoice</button>
-                </form>
+                    @if ($booking->latestInvoice)
+                        <div class="small text-steel">No Invoice</div>
+                        <div class="fw-semibold mb-2">{{ $booking->latestInvoice->no_invoice }}</div>
+                        <div class="d-flex justify-content-between small"><span>Subtotal</span><strong>Rp {{ number_format($booking->latestInvoice->subtotal, 0, ',', '.') }}</strong></div>
+                        <div class="d-flex justify-content-between small"><span>PPN {{ number_format($booking->latestInvoice->ppn_persen, 2, ',', '.') }}%</span><strong>Rp {{ number_format($booking->latestInvoice->ppn_nominal, 0, ',', '.') }}</strong></div>
+                        <hr>
+                        <div class="d-flex justify-content-between"><span>Total</span><strong>Rp {{ number_format($booking->latestInvoice->total_bayar, 0, ',', '.') }}</strong></div>
+                    @else
+                        <p class="text-steel mb-0">Invoice akan otomatis dibuat setelah customer menyetujui penawaran harga final.</p>
+                    @endif
+                </div>
 
                 @if ($booking->latestInvoice)
                     <div class="bg-white border rounded-3 p-4 mb-4">
@@ -136,7 +140,7 @@
                     <h2 class="h5 text-navy">Detail Operasional</h2>
                     <div class="row g-3">
                         <div class="col-md-4"><label class="form-label">JOA Number</label><input name="joa_number" class="form-control" value="{{ old('joa_number', optional($booking->container->first())->joa_number) }}"></div>
-                        <div class="col-md-4"><label class="form-label">No Container</label><input name="no_container" class="form-control" value="{{ old('no_container', optional($booking->container->first())->no_container) }}" required></div>
+                        <div class="col-md-4"><label class="form-label">No Container</label><input name="no_container" class="form-control" value="{{ old('no_container', optional($booking->container->first())->no_container) }}"></div>
                         <div class="col-md-4"><label class="form-label">Shipping Line</label><input name="shipping_line" class="form-control" value="{{ old('shipping_line', optional($booking->container->first())->shipping_line) }}"></div>
                         <div class="col-md-4"><label class="form-label">Feeder Vessel</label><input name="feeder_vessel" class="form-control" value="{{ old('feeder_vessel', optional($booking->container->first())->feeder_vessel) }}"></div>
                         <div class="col-md-4"><label class="form-label">Connecting Vessel</label><input name="connecting_vessel" class="form-control" value="{{ old('connecting_vessel', optional($booking->container->first())->connecting_vessel) }}"></div>
@@ -147,8 +151,8 @@
                     </div>
                     <hr>
                     <div class="row g-3">
-                        <div class="col-md-4"><label class="form-label">No Surat Jalan</label><input name="no_surat_jalan" class="form-control" value="{{ old('no_surat_jalan', optional($booking->suratJalan->first())->no_surat_jalan) }}" required></div>
-                        <div class="col-md-4"><label class="form-label">Tanggal</label><input type="date" name="tanggal" class="form-control" value="{{ old('tanggal', optional(optional($booking->suratJalan->first())->tanggal)->format('Y-m-d') ?? now()->toDateString()) }}" required></div>
+                        <div class="col-md-4"><label class="form-label">No Surat Jalan</label><input name="no_surat_jalan" class="form-control" value="{{ old('no_surat_jalan', optional($booking->suratJalan->first())->no_surat_jalan) }}"></div>
+                        <div class="col-md-4"><label class="form-label">Tanggal</label><input type="date" name="tanggal" class="form-control" value="{{ old('tanggal', optional(optional($booking->suratJalan->first())->tanggal)->format('Y-m-d')) }}"></div>
                         <div class="col-md-4"><label class="form-label">Kendaraan</label><input name="kendaraan" class="form-control" value="{{ old('kendaraan', optional($booking->suratJalan->first())->kendaraan) }}"></div>
                         <div class="col-md-4"><label class="form-label">No Polisi</label><input name="nopol_kendaraan" class="form-control" value="{{ old('nopol_kendaraan', optional($booking->suratJalan->first())->nopol_kendaraan) }}"></div>
                         <div class="col-md-4"><label class="form-label">Nama Sopir</label><input name="nama_sopir" class="form-control" value="{{ old('nama_sopir', optional($booking->suratJalan->first())->nama_sopir) }}"></div>

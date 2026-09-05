@@ -16,6 +16,11 @@ class SuratJalan extends Model
         'nama_penerima_ttd', 'tanggal_diterima',
     ];
 
+    protected $casts = [
+        'tanggal' => 'date',
+        'tanggal_diterima' => 'date',
+    ];
+
     public function booking()
     {
         return $this->belongsTo(Booking::class, 'booking_id', 'booking_id');

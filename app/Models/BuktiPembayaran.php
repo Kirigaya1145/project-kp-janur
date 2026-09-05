@@ -15,6 +15,11 @@ class BuktiPembayaran extends Model
         'status_konfirmasi', 'dikonfirmasi_oleh', 'tanggal_konfirmasi', 'catatan_admin',
     ];
 
+    protected $casts = [
+        'tanggal_upload' => 'datetime',
+        'tanggal_konfirmasi' => 'datetime',
+    ];
+
     public function invoice()
     {
         return $this->belongsTo(Invoice::class, 'invoice_id', 'invoice_id');

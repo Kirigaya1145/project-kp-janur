@@ -73,4 +73,24 @@ class Booking extends Model
     {
         return (float) $this->barang->sum(fn ($item) => (float) $item->berat_kg);
     }
+
+    public function statusSederhana(): string
+    {
+        return match ($this->status_booking) {
+            'menunggu_penawaran' => 'Menunggu Penawaran',
+            'menunggu_konfirmasi_customer' => 'Menunggu Konfirmasi',
+            'menunggu_pembayaran', 'pembayaran_ditolak' => 'Menunggu Pembayaran',
+            'menunggu_verifikasi_pembayaran' => 'Verifikasi Pembayaran',
+            'siap_operasional', 'dalam_pengiriman' => 'Proses Pengiriman',
+            'diterima', 'selesai' => 'Selesai',
+            'dibatalkan' => 'Dibatalkan',
+            'penawaran_ditolak' => 'Penawaran Ditolak',
+            default => match ($this->status_harga) {
+                'sudah_ditawarkan' => 'Menunggu Konfirmasi',
+                'dikonfirmasi_customer' => 'Menunggu Pembayaran',
+                'ditolak_customer' => 'Penawaran Ditolak',
+                default => 'Menunggu Penawaran',
+            },
+        };
+    }
 }

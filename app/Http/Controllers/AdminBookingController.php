@@ -153,7 +153,7 @@ class AdminBookingController extends Controller
     {
         $validated = $request->validate([
             'joa_number' => ['nullable', 'string', 'max:50'],
-            'no_container' => ['required', 'string', 'max:50'],
+            'no_container' => ['nullable', 'string', 'max:50'],
             'shipping_line' => ['nullable', 'string', 'max:100'],
             'feeder_vessel' => ['nullable', 'string', 'max:100'],
             'connecting_vessel' => ['nullable', 'string', 'max:100'],
@@ -161,8 +161,8 @@ class AdminBookingController extends Controller
             'stuff_date' => ['nullable', 'date'],
             'etd' => ['nullable', 'date'],
             'eta' => ['nullable', 'date'],
-            'no_surat_jalan' => ['required', 'string', 'max:50'],
-            'tanggal' => ['required', 'date'],
+            'no_surat_jalan' => ['nullable', 'string', 'max:50'],
+            'tanggal' => ['nullable', 'date'],
             'kendaraan' => ['nullable', 'string', 'max:50'],
             'nopol_kendaraan' => ['nullable', 'string', 'max:20'],
             'nama_sopir' => ['nullable', 'string', 'max:100'],
@@ -171,30 +171,35 @@ class AdminBookingController extends Controller
             'nama_pengirim' => ['nullable', 'string', 'max:100'],
         ]);
 
-        BookingContainer::updateOrCreate(
-            ['booking_id' => $booking->booking_id],
-            collect($validated)->only([
-                'joa_number', 'no_container', 'shipping_line', 'feeder_vessel',
-                'connecting_vessel', 'destination', 'stuff_date', 'etd', 'eta',
-            ])->all()
-        );
+        $containerData = collect($validated)->only([
+            'joa_number', 'no_container', 'shipping_line', 'feeder_vessel',
+            'connecting_vessel', 'destination', 'stuff_date', 'etd', 'eta',
+        ])->all();
 
-        SuratJalan::updateOrCreate(
-            ['booking_id' => $booking->booking_id],
-            collect($validated)->only([
-                'no_surat_jalan', 'tanggal', 'kendaraan', 'nopol_kendaraan',
-                'nama_sopir', 'penerima_kepada', 'lokasi_penerima', 'nama_pengirim',
-            ])->all()
-        );
+        $suratJalanData = collect($validated)->only([
+            'no_surat_jalan', 'tanggal', 'kendaraan', 'nopol_kendaraan',
+            'nama_sopir', 'penerima_kepada', 'lokasi_penerima', 'nama_pengirim',
+        ])->all();
 
-        $booking->update(['status_booking' => 'dalam_pengiriman']);
+        if (collect($containerData)->filter()->isNotEmpty()) {
+            BookingContainer::updateOrCreate(['booking_id' => $booking->booking_id], $containerData);
+        }
+
+        if (! empty($suratJalanData['no_surat_jalan'])) {
+            SuratJalan::updateOrCreate(['booking_id' => $booking->booking_id], $suratJalanData);
+        }
+
+        if (in_array($booking->status_booking, ['siap_operasional', 'dalam_pengiriman'], true)) {
+            $booking->update(['status_booking' => 'dalam_pengiriman']);
+        }
+
         $booking->statusHistory()->create([
             'updated_by' => Auth::id(),
             'status' => 'diproses',
-            'keterangan' => 'Data kontainer, kapal, dan surat jalan telah dilengkapi.',
+            'keterangan' => 'Detail operasional pengiriman diperbarui.',
         ]);
 
-        return back()->with('success', 'Detail operasional berhasil disimpan.');
+        return back()->with('success', 'Detail operasional berhasil diperbarui.');
     }
 
     public function updateProgress(Request $request, Booking $booking)

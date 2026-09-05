@@ -32,7 +32,7 @@
                             <td>{{ $booking->asal }} - {{ $booking->tujuan }}</td>
                             <td>Rp {{ number_format($booking->harga_estimasi ?? 0, 0, ',', '.') }}</td>
                             <td>Rp {{ number_format($booking->harga_final ?? 0, 0, ',', '.') }}</td>
-                            <td><span class="badge text-bg-light border">{{ str_replace('_', ' ', $booking->status_booking ?? $booking->status_harga) }}</span></td>
+                            <td><span class="badge text-bg-light border">{{ $booking->statusSederhana() }}</span></td>
                             <td class="text-end"><a href="{{ route('booking.show', $booking->kode_booking) }}" class="btn btn-sm btn-outline-accent">Detail</a></td>
                         </tr>
                     @empty

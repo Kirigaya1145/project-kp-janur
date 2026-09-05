@@ -36,6 +36,7 @@ Route::post('/booking/cek', function (\Illuminate\Http\Request $request) {
 Route::get('/booking/{id}', [BookingController::class, 'show'])->name('booking.show');
 Route::post('/booking/{booking}/konfirmasi-penawaran', [BookingController::class, 'confirmOffer'])->middleware('auth')->name('booking.confirm-offer');
 Route::post('/invoice/{invoice}/bukti-pembayaran', [BookingController::class, 'uploadPayment'])->middleware('auth')->name('invoice.upload-payment');
+Route::get('/invoice/{invoice}/pdf', [BookingController::class, 'downloadInvoice'])->middleware('auth')->name('invoice.pdf');
 
 Route::middleware(['auth', 'role:admin,staff'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminBookingController::class, 'dashboard'])->name('dashboard');
