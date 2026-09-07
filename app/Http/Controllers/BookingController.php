@@ -208,7 +208,7 @@ class BookingController extends Controller
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml(view('pdf.invoice', compact('invoice', 'booking'))->render());
-        $dompdf->setPaper('a4', 'landscape');
+        $dompdf->setPaper('a4', 'potrait');
         $dompdf->render();
 
         $filename = 'invoice-' . str_replace(['/', '\\'], '-', $invoice->no_invoice) . '.pdf';
@@ -247,5 +247,36 @@ class BookingController extends Controller
             ]
         );
     }
+    public function downloadSuratJalan(Booking $booking)
+    {
+        $booking->load(['barang', 'suratJalan']);
 
+        abort_unless(
+            Auth::id() === $booking->user_id || in_array(Auth::user()->role, ['admin', 'staff'], true),
+            403
+        );
+
+        $suratJalan = $booking->suratJalan->first();
+
+        if (! $suratJalan) {
+            return back()->with('error', 'Surat jalan untuk booking ini belum dibuat oleh admin.');
+        }
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('chroot', public_path());
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml(view('pdf.surat-jalan', compact('suratJalan', 'booking'))->render());
+        $dompdf->setPaper('a4', 'portrait');
+        $dompdf->render();
+
+        $filename = 'surat-jalan-' . str_replace(['/', '\\'], '-', $suratJalan->no_surat_jalan) . '.pdf';
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
 }

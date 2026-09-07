@@ -93,7 +93,11 @@
                             @endif
                         </div>
                     @endif
-
+                    @if($booking->suratJalan->first())
+                        <a href="{{ route('booking.surat-jalan.pdf', $booking) }}" target="_blank" class="btn btn-sm btn-outline-accent mt-2">
+                            <i class="bi bi-file-earmark-pdf"></i> Download Surat Jalan
+                        </a>
+                    @endif
                     <div class="bg-white border rounded-3 p-4">
                         <h3 class="h5 text-navy">Riwayat Progress</h3>
                         <div class="list-group list-group-flush">
