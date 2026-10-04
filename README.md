@@ -5,6 +5,9 @@ Aplikasi web berbasis Laravel untuk mengelola alur booking pengiriman container 
 ## Daftar Isi
 
 - [Fitur Utama](#fitur-utama)
+- [Ringkasan untuk Presentasi](#ringkasan-untuk-presentasi)
+- [Perbedaan dari Laravel Default](#perbedaan-dari-laravel-default)
+- [Penjelasan File Proyek](#penjelasan-file-proyek)
 - [Alur Booking](#alur-booking)
 - [Role & Akun Default](#role--akun-default)
 - [Tech Stack](#tech-stack)
@@ -33,6 +36,98 @@ Aplikasi web berbasis Laravel untuk mengelola alur booking pengiriman container 
 - Verifikasi atau tolak bukti pembayaran yang diunggah customer
 - Input detail operasional (JOA number, container, shipping line, vessel, ETD/ETA) dan surat jalan
 - Update progres pengiriman (dalam pengiriman → diterima → selesai, atau dibatalkan)
+
+## Ringkasan untuk Presentasi
+
+**PT Janur Tangguh Abadi — Sistem Booking Pengiriman Laut** adalah aplikasi web untuk mencatat dan mengelola layanan pengiriman barang menggunakan container. Aplikasi ini menggantikan proses yang sebelumnya dapat tersebar di formulir dan komunikasi manual dengan satu alur digital yang dapat dipantau customer dan dikelola admin/staff.
+
+Pengguna utama aplikasi terdiri dari tiga peran:
+
+- **Customer** membuat booking, melihat penawaran, memberi keputusan, mengunggah bukti pembayaran, dan memantau status.
+- **Staff** mengelola data operasional booking dan memberikan penawaran.
+- **Admin** memiliki akses pengelolaan booking, rute, pembayaran, dan progres operasional.
+
+Nilai utama aplikasi adalah menyimpan data customer, detail barang, harga, invoice, pembayaran, dan progres pengiriman dalam satu alur yang saling terhubung. Customer juga dapat melacak booking menggunakan kode booking.
+
+### Urutan Demo yang Disarankan
+
+1. Tampilkan halaman beranda dan informasi perusahaan.
+2. Login sebagai customer, lalu buat booking dengan memilih rute dan mengisi rincian barang.
+3. Tunjukkan kode booking dan halaman cek status.
+4. Login sebagai admin/staff, buka booking, lalu berikan harga final.
+5. Kembali sebagai customer untuk menyetujui penawaran dan melihat invoice.
+6. Unggah bukti pembayaran, lalu tunjukkan verifikasi pembayaran dari sisi admin/staff.
+7. Lengkapi data container/surat jalan dan ubah progres hingga booking selesai.
+
+Gunakan akun demo pada bagian [Role & Akun Default](#role--akun-default). Untuk presentasi, sebaiknya siapkan data booking pada beberapa status agar tiap layar dapat ditunjukkan tanpa mengulang semua langkah.
+
+## Perbedaan dari Laravel Default
+
+Laravel menyediakan fondasi seperti routing, autentikasi, middleware, akses database, dan template Blade. Proyek ini menggunakan fondasi tersebut untuk membuat proses bisnis pengiriman laut. Bagian berikut menjelaskan implementasi khusus proyek; daftar ini bukan perbandingan diff per baris dengan instalasi Laravel yang bersih.
+
+| Area | Fondasi Laravel | Implementasi proyek |
+|---|---|---|
+| Halaman | Route dan view awal | Beranda perusahaan, informasi perusahaan, booking, pelacakan, riwayat, dan dashboard admin |
+| Pengguna | Autentikasi dasar | Peran `admin`, `staff`, dan `customer`, termasuk pembatasan akses admin/staff |
+| Data | Eloquent dan migration | Rute, booking, barang, invoice, bukti pembayaran, container, surat jalan, dan riwayat status |
+| Proses bisnis | Tidak tersedia secara bawaan | Penawaran harga, persetujuan customer, penerbitan invoice, verifikasi pembayaran, dan update pengiriman |
+| Dokumen | Tidak tersedia secara bawaan | Template invoice Blade yang dirender menjadi PDF dengan Dompdf |
+| Data awal | Seeder contoh Laravel | Akun demo, profil perusahaan, dan rute contoh untuk aplikasi Janur |
+
+Autentikasi memakai Laravel UI. Karena itu, sebagian halaman login/register dan komponen framework tetap merupakan scaffolding atau fondasi, bukan fitur bisnis yang dibuat khusus untuk booking.
+
+## Penjelasan File Proyek
+
+### Rute dan Pengendalian Akses
+
+- `routes/web.php` — mendaftarkan halaman publik, rute customer, proses invoice, dan grup admin. Rute bisnis mengarah ke controller aplikasi.
+- `app/Http/Kernel.php` — mendaftarkan alias middleware `role` agar grup admin/staff dapat dibatasi berdasarkan peran.
+- `app/Http/Middleware/EnsureRole.php` — menolak akses dengan HTTP 403 ketika pengguna tidak memiliki salah satu peran yang diizinkan.
+
+### Controller
+
+- `app/Http/Controllers/PageController.php` — menampilkan beranda dan halaman tentang perusahaan beserta profil perusahaan.
+- `app/Http/Controllers/BookingController.php` — menangani alur customer: membuat booking, melihat riwayat dan status, menyetujui/menolak penawaran, mengunggah bukti pembayaran, serta membuat PDF invoice.
+- `app/Http/Controllers/AdminBookingController.php` — menangani dashboard, data rute, penawaran, invoice, verifikasi pembayaran, data operasional, dan perubahan progres pengiriman.
+- `app/Http/Controllers/HomeController.php` — halaman `/home` yang berasal dari scaffolding autentikasi Laravel UI.
+
+### Model dan Hubungan Data
+
+- `app/Models/Booking.php` — data utama booking serta relasi ke customer, rute, barang, invoice, container, surat jalan, dan riwayat status. Model ini juga mengubah status internal menjadi label sederhana untuk ditampilkan.
+- `app/Models/BookingBarang.php` — rincian barang yang dikirim pada booking.
+- `app/Models/RuteHarga.php` — master pelabuhan asal, tujuan, dan harga dasar.
+- `app/Models/Invoice.php` — data invoice dan relasinya ke booking serta bukti pembayaran.
+- `app/Models/BuktiPembayaran.php` — jumlah, file, dan status konfirmasi pembayaran.
+- `app/Models/BookingContainer.php` — nomor container dan informasi pelayaran seperti vessel, ETD, dan ETA.
+- `app/Models/SuratJalan.php` — informasi dokumen pengantaran dan penerima.
+- `app/Models/StatusBooking.php` — catatan perubahan status dan pengguna yang memperbaruinya.
+- `app/Models/CompanyProfile.php` — informasi perusahaan yang digunakan pada halaman dan dokumen.
+- `app/Models/User.php` — akun pengguna, peran, dan relasi booking. Model ini menyesuaikan identitas primary key pengguna dengan skema proyek.
+
+### Database dan Data Awal
+
+- `database/migrations/2026_09_04_045000_create_company_profiles_table.php` — membuat tabel profil perusahaan.
+- `database/migrations/2026_09_04_050440_add_logo_to_company_profiles_table.php` — menambahkan kolom logo perusahaan.
+- `database/migrations/2026_09_04_060000_create_booking_workflow_tables.php` — membuat tabel rute dan tabel-tabel inti proses booking, invoice, pembayaran, operasional, serta riwayat status.
+- `database/seeders/DatabaseSeeder.php` — menyiapkan akun demo, profil perusahaan, dan tiga rute contoh. Seeder menggunakan `updateOrCreate`, sehingga data demo dapat diselaraskan kembali saat dijalankan.
+- Migration Laravel lainnya, seperti migration `users` dan `personal_access_tokens`, mendukung autentikasi dan infrastruktur framework.
+
+### Tampilan dan Aset
+
+- `resources/views/pages/` — halaman customer dan publik: beranda, tentang, form booking, sukses booking, cek status, dan riwayat.
+- `resources/views/admin/` — dashboard admin/staff, daftar rute, dan detail booking.
+- `resources/views/layouts/app.blade.php` — layout bersama untuk halaman aplikasi.
+- `resources/views/pdf/invoice.blade.php` — struktur dan gaya dokumen invoice yang dirender Dompdf.
+- `resources/sass/app.scss` dan `resources/sass/_variables.scss` — stylesheet Sass aplikasi.
+- `resources/js/app.js` dan `resources/js/bootstrap.js` — entry point JavaScript dan setup frontend.
+- `public/images/` — aset gambar publik, termasuk logo yang dapat dipakai di halaman atau dokumen.
+
+### File Konfigurasi Proyek
+
+- `composer.json` — daftar dependency PHP; proyek menggunakan Laravel 10, Laravel UI, Sanctum, dan Dompdf.
+- `package.json` dan `vite.config.js` — dependency frontend serta konfigurasi build asset dengan Vite.
+- `phpunit.xml`, `tests/` — konfigurasi dan lokasi pengujian Laravel/PHPUnit.
+- `.env` — konfigurasi lokal, termasuk koneksi database. Jangan masukkan file ini atau kredensialnya ke repository.
 
 ## Alur Booking
 
@@ -155,17 +250,19 @@ app/
   Http/Controllers/
     AdminBookingController.php   # semua aksi sisi admin/staff
     BookingController.php        # semua aksi sisi customer
-    Auth/                        # scaffolding login/register/reset password
-  Models/                        # Booking, Invoice, RuteHarga, dll.
+    PageController.php            # halaman publik
+  Http/Middleware/EnsureRole.php  # pembatas akses berbasis role
+  Models/                         # model dan relasi data aplikasi
 resources/views/
-  admin/                         # dashboard, kelola rute, detail booking admin
-  pages/                         # landing page, form booking, cek/riwayat booking
-  pdf/invoice.blade.php          # template invoice untuk Dompdf
-  layouts/app.blade.php          # layout utama (navbar, footer, styling)
+  admin/                          # dashboard, kelola rute, detail booking admin
+  auth/                           # tampilan autentikasi
+  pages/                          # halaman publik dan customer
+  pdf/invoice.blade.php           # template invoice untuk Dompdf
+  layouts/app.blade.php           # layout utama
 database/
   migrations/
-  seeders/DatabaseSeeder.php     # akun default & data rute contoh
-routes/web.php                   # seluruh rute aplikasi
+  seeders/DatabaseSeeder.php      # akun demo, profil dan rute contoh
+routes/web.php                    # rute aplikasi
 ```
 
 ## Catatan Pengembangan

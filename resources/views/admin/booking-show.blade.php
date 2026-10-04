@@ -219,15 +219,18 @@
 
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h3 class="h6 text-navy mb-0">Container &amp; Vessel</h3>
-                                @if ($hasContainer)
-                                    <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="collapse" data-bs-target="#formContainer">
-                                        <i class="bi bi-pencil me-1"></i> Edit
-                                    </button>
-                                @if ($hasSuratJalan)
-                                    <a href="{{ route('booking.surat-jalan.pdf', $booking) }}" target="_blank" class="btn btn-sm btn-accent ms-1">
-                                        <i class="bi bi-file-earmark-pdf me-1"></i> Cetak PDF
-                                    </a>
-                                @endif
+                                <div>
+                                    @if ($hasContainer)
+                                        <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="collapse" data-bs-target="#formContainer">
+                                            <i class="bi bi-pencil me-1"></i> Edit
+                                        </button>
+                                    @endif
+                                    @if ($hasSuratJalan)
+                                        <a href="{{ route('booking.surat-jalan.pdf', $booking) }}" target="_blank" class="btn btn-sm btn-accent ms-1">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i> Cetak PDF
+                                        </a>
+                                    @endif
+                                </div>
                             </div>
 
                             @if ($hasContainer)
