@@ -30,7 +30,27 @@
                         {{ $companyProfile->misi ?? 'Misi perusahaan akan segera dilengkapi.' }}
                     </p>
                 </div>
-
+                <h4 class="text-navy mb-3 mt-4">Layanan Kami</h4>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 h-100">
+                            <h6 class="text-navy mb-2"><i class="bi bi-ship"></i> Freight Forwarding Reguler</h6>
+                            <p class="text-steel small mb-0">
+                                Pengurusan dan pengiriman barang melalui jalur pelayaran, domestik maupun
+                                internasional, termasuk kepabeanan dan transportasi darat antar pulau.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded-3 h-100">
+                            <h6 class="text-navy mb-2"><i class="bi bi-crane"></i> Project Shipment</h6>
+                            <p class="text-steel small mb-0">
+                                Charter LCT, tug, dan barge untuk pengiriman proyek berskala besar,
+                                termasuk heavy lift shipment dan studi kelayakan jalur pengiriman.
+                            </p>
+                        </div>
+                    </div>
+                </div>
                 <div class="col-lg-4">
                     <div class="p-4 rounded-3 section-soft">
                         <h5 class="text-navy mb-3">Informasi Kontak</h5>

@@ -80,7 +80,42 @@
             </div>
         </div>
     </section>
+    {{-- LAYANAN KAMI --}}
+    <section class="py-5 section-soft">
+        <div class="container py-4">
+            <p class="text-uppercase small text-center mb-2" style="letter-spacing:1px; color: var(--accent);">
+                Layanan Kami
+            </p>
+            <h2 class="text-navy fw-bold text-center mb-5">Solusi Pengiriman End-to-End</h2>
 
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="p-4 h-100 bg-white rounded-3 shadow-sm">
+                        <div class="mb-3 fs-2 text-navy"><i class="bi bi-ship"></i></div>
+                        <h5 class="mb-2">Freight Forwarding Reguler</h5>
+                        <p class="text-steel small mb-0">
+                            Layanan pengurusan dan pengiriman barang melalui jalur pelayaran,
+                            mencakup transportasi domestik maupun internasional, impor dan ekspor,
+                            kepabeanan, hingga transportasi darat untuk pengiriman antar pulau
+                            seperti Kalimantan, Sulawesi, dan Bali, dengan Surabaya sebagai hub utama.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-4 h-100 bg-white rounded-3 shadow-sm">
+                        <div class="mb-3 fs-2 text-navy"><i class="bi bi-crane"></i></div>
+                        <h5 class="mb-2">Project Shipment</h5>
+                        <p class="text-steel small mb-0">
+                            Layanan khusus untuk pengiriman proyek berskala besar, meliputi
+                            charter LCT (Landing Craft Tank), tug, dan barge, pengangkutan alat
+                            berat dari kapal ke darat menggunakan crane dan multi-axle trailer,
+                            serta studi kelayakan dan survei jalur pengiriman.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
     {{-- KEUNGGULAN --}}
     <section class="py-5 section-soft">
         <div class="container py-4">
