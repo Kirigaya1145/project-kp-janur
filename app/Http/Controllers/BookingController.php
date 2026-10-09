@@ -61,8 +61,7 @@ class BookingController extends Controller
 
         DB::transaction(function () use ($validated) {
             $rute = RuteHarga::findOrFail($validated['rute_id']);
-            $totalBerat = collect($validated['barang'])->sum(fn ($item) => (float) ($item['berat_kg'] ?? 0));
-            $hargaEstimasi = $totalBerat * (float) $rute->harga_dasar;
+            $hargaEstimasi = (int) $validated['jumlah_container'] * (float) $rute->harga_dasar;
 
             $booking = Booking::create([
                 'kode_booking' => $this->generateKodeBooking(),

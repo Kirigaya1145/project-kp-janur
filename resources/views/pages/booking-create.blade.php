@@ -41,7 +41,7 @@
                         <option value="">Pilih rute</option>
                         @foreach ($rutes as $rute)
                             <option value="{{ $rute->rute_id }}" data-harga="{{ $rute->harga_dasar }}" @selected(old('rute_id') == $rute->rute_id)>
-                                {{ $rute->pelabuhan_asal }} - {{ $rute->pelabuhan_tujuan }} (Rp {{ number_format($rute->harga_dasar, 0, ',', '.') }}/kg)
+                                {{ $rute->pelabuhan_asal }} - {{ $rute->pelabuhan_tujuan }} (Rp {{ number_format($rute->harga_dasar, 0, ',', '.') }}/container)
                             </option>
                         @endforeach
                     </select>
@@ -54,7 +54,7 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Jumlah Container</label>
-                    <input type="number" name="jumlah_container" class="form-control @error('jumlah_container') is-invalid @enderror" value="{{ old('jumlah_container', 1) }}" min="1" required>
+                    <input type="number" id="jumlah_container" name="jumlah_container" class="form-control @error('jumlah_container') is-invalid @enderror" value="{{ old('jumlah_container', 1) }}" min="1" required>
                     @error('jumlah_container')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>
@@ -95,8 +95,8 @@
             <div class="row justify-content-end mt-4">
                 <div class="col-lg-4">
                     <div class="section-soft rounded-3 p-3">
-                        <div class="d-flex justify-content-between small mb-2"><span>Total Berat</span><strong id="totalBerat">0 kg</strong></div>
-                        <div class="d-flex justify-content-between small mb-2"><span>Harga Dasar</span><strong id="hargaDasar">Rp 0/kg</strong></div>
+                        <div class="d-flex justify-content-between small mb-2"><span>Jumlah Container</span><strong id="jumlahContainerText">1</strong></div>
+                        <div class="d-flex justify-content-between small mb-2"><span>Harga per Container</span><strong id="hargaDasar">Rp 0</strong></div>
                         <div class="d-flex justify-content-between"><span>Estimasi Awal</span><strong id="estimasi">Rp 0</strong></div>
                         <p class="small text-steel mt-2 mb-0">Harga final tetap menunggu review staff/admin.</p>
                     </div>
@@ -120,11 +120,10 @@
     function recalc() {
         const route = document.getElementById('rute_id');
         const harga = Number(route.options[route.selectedIndex]?.dataset.harga || 0);
-        let total = 0;
-        document.querySelectorAll('.berat-input').forEach((input) => total += Number(input.value || 0));
-        document.getElementById('totalBerat').textContent = `${total.toLocaleString('id-ID')} kg`;
-        document.getElementById('hargaDasar').textContent = `${rupiah(harga)}/kg`;
-        document.getElementById('estimasi').textContent = rupiah(total * harga);
+        const jumlah = Number(document.getElementById('jumlah_container').value || 0);
+        document.getElementById('jumlahContainerText').textContent = jumlah.toLocaleString('id-ID');
+        document.getElementById('hargaDasar').textContent = rupiah(harga);
+        document.getElementById('estimasi').textContent = rupiah(jumlah * harga);
     }
 
     document.getElementById('addItem').addEventListener('click', () => {
@@ -144,7 +143,7 @@
     });
 
     document.addEventListener('input', (event) => {
-        if (event.target.matches('.berat-input, #rute_id')) recalc();
+        if (event.target.matches('#jumlah_container, #rute_id')) recalc();
     });
     document.addEventListener('change', (event) => {
         if (event.target.matches('#rute_id')) recalc();

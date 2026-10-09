@@ -27,7 +27,7 @@
                         <input type="text" name="pelabuhan_tujuan" class="form-control" value="{{ old('pelabuhan_tujuan') }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Harga Dasar per Kg</label>
+                        <label class="form-label">Harga Dasar per Container</label>
                         <input type="number" name="harga_dasar" class="form-control" value="{{ old('harga_dasar') }}" min="0" required>
                     </div>
                     <div class="mb-3">
