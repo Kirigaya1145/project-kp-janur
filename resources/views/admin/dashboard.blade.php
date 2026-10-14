@@ -14,14 +14,14 @@
         </div>
 
         <div class="row g-3 mb-4">
-            <div class="col-md-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Total Booking</div><div class="h4 mb-0">{{ $bookings->count() }}</div></div></div>
-            <div class="col-md-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Perlu Penawaran</div><div class="h4 mb-0">{{ $bookings->filter(fn ($booking) => $booking->statusSederhana() === 'Menunggu Penawaran')->count() }}</div></div></div>
-            <div class="col-md-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Menunggu Bayar</div><div class="h4 mb-0">{{ $bookings->filter(fn ($booking) => $booking->statusSederhana() === 'Menunggu Pembayaran')->count() }}</div></div></div>
-            <div class="col-md-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Proses Kirim</div><div class="h4 mb-0">{{ $bookings->filter(fn ($booking) => $booking->statusSederhana() === 'Proses Pengiriman')->count() }}</div></div></div>
+            <div class="col-6 col-lg-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Total Booking</div><div class="h4 mb-0">{{ $bookings->count() }}</div></div></div>
+            <div class="col-6 col-lg-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Perlu Penawaran</div><div class="h4 mb-0">{{ $bookings->filter(fn ($booking) => $booking->statusSederhana() === 'Menunggu Penawaran')->count() }}</div></div></div>
+            <div class="col-6 col-lg-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Menunggu Bayar</div><div class="h4 mb-0">{{ $bookings->filter(fn ($booking) => $booking->statusSederhana() === 'Menunggu Pembayaran')->count() }}</div></div></div>
+            <div class="col-6 col-lg-3"><div class="bg-white border rounded-3 p-3"><div class="small text-steel">Proses Kirim</div><div class="h4 mb-0">{{ $bookings->filter(fn ($booking) => $booking->statusSederhana() === 'Proses Pengiriman')->count() }}</div></div></div>
         </div>
 
         <div class="bg-white border rounded-3 table-responsive">
-            <table class="table align-middle mb-0">
+            <table class="table align-middle mb-0 responsive-cards">
                 <thead>
                     <tr>
                         <th>Kode</th>
@@ -36,13 +36,13 @@
                 <tbody>
                     @forelse ($bookings as $booking)
                         <tr>
-                            <td class="fw-semibold">{{ $booking->kode_booking }}</td>
-                            <td>{{ $booking->nama_customer }}</td>
-                            <td>{{ $booking->asal }} - {{ $booking->tujuan }}</td>
-                            <td>Rp {{ number_format($booking->harga_estimasi ?? 0, 0, ',', '.') }}</td>
-                            <td>Rp {{ number_format($booking->harga_final ?? 0, 0, ',', '.') }}</td>
-                            <td><span class="badge text-bg-light border">{{ $booking->statusSederhana() }}</span></td>
-                            <td class="text-end"><a href="{{ route('admin.booking.show', $booking) }}" class="btn btn-sm btn-outline-accent">Kelola</a></td>
+                            <td data-label="Kode" class="fw-semibold">{{ $booking->kode_booking }}</td>
+                            <td data-label="Customer">{{ $booking->nama_customer }}</td>
+                            <td data-label="Rute">{{ $booking->asal }} - {{ $booking->tujuan }}</td>
+                            <td data-label="Estimasi">Rp {{ number_format($booking->harga_estimasi ?? 0, 0, ',', '.') }}</td>
+                            <td data-label="Final">Rp {{ number_format($booking->harga_final ?? 0, 0, ',', '.') }}</td>
+                            <td data-label="Status"><span class="badge text-bg-light border">{{ $booking->statusSederhana() }}</span></td>
+                            <td data-label="Aksi" class="text-end"><a href="{{ route('admin.booking.show', $booking) }}" class="btn btn-sm btn-outline-accent">Kelola</a></td>
                         </tr>
                     @empty
                         <tr><td colspan="7" class="text-center text-steel py-4">Belum ada booking.</td></tr>

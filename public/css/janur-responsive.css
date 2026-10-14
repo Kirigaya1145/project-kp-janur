@@ -1,0 +1,67 @@
+:root { --surface-radius: 16px; }
+*, *::before, *::after { box-sizing: border-box; }
+body { min-width: 0; }
+main { min-height: 55vh; }
+img, video { max-width: 100%; }
+.container, .row > *, .d-flex > *, .card, .navbar-collapse { min-width: 0; }
+h1, h2, h3, p, strong, summary, .badge, .dropdown-item, .form-label { overflow-wrap: anywhere; }
+.navbar-brand { max-width: calc(100% - 84px); margin-right: 0; white-space: normal; }
+.navbar-brand img { flex: 0 0 auto; object-fit: contain; }
+.navbar-brand .brand-name { line-height: 1.35; }
+.navbar-toggler { min-width: 44px; min-height: 44px; border-color: rgba(255,255,255,.45); }
+.navbar-janur .navbar-toggler-icon { filter: invert(1); }
+.navbar-nav .nav-link { padding-block: .65rem; }
+.dropdown-menu { max-width: min(360px, calc(100vw - 32px)); }
+.dropdown-item { white-space: normal; }
+.form-control, .form-select { min-height: 44px; max-width: 100%; font-size: 1rem; }
+textarea.form-control { min-height: 96px; resize: vertical; }
+input[type=file] { width: 100%; }
+.btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; white-space: normal; }
+.btn-sm { min-height: 40px; }
+.badge { white-space: normal; line-height: 1.45; }
+.table-responsive { max-width: 100%; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.table th, .table td { vertical-align: middle; overflow-wrap: anywhere; }
+.table-responsive > .table:not(.responsive-cards) { min-width: 540px; }
+.responsive-cards { min-width: 0; }
+details > summary { cursor: pointer; min-height: 44px; padding: .5rem; }
+details[open] > summary { margin-bottom: .75rem; border-bottom: 1px solid #dee2e6; }
+.item-row { background: #fafbfd; }
+.section-soft .bg-white { box-shadow: 0 3px 18px rgba(11,37,69,.035); }
+.site-footer { padding-bottom: 90px !important; }
+.wa-float { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 1030; }
+.home-media { aspect-ratio: 16 / 10; object-fit: cover; }
+.home-video { width: 100%; aspect-ratio: 16 / 9; max-height: 440px; background: #0b2545; }
+@media (max-width: 1199.98px) {
+  .navbar-collapse { padding-top: 1rem; }
+  .navbar-nav { align-items: stretch !important; gap: .2rem; }
+  .navbar-nav .dropdown-menu { width: 100%; max-width: 100%; }
+  .navbar-brand { font-size: 1rem; }
+}
+@media (max-width: 767.98px) {
+  .container { padding-inline: 16px; }
+  section.py-5, .container.py-5 { padding-block: 2rem !important; }
+  .p-4 { padding: 1.1rem !important; }
+  .display-5 { font-size: clamp(1.8rem, 7vw, 2.8rem); }
+  .h3, h1.h3 { font-size: 1.45rem; }
+  .responsive-cards, .responsive-cards tbody, .responsive-cards tr, .responsive-cards td { display: block; width: 100%; }
+  .responsive-cards thead { display: none; }
+  .responsive-cards tr { padding: 1rem; border-bottom: 1px solid #dee2e6; }
+  .responsive-cards tr:last-child { border-bottom: 0; }
+  .responsive-cards td { border: 0; padding: .45rem 0; display: grid; grid-template-columns: minmax(80px, 32%) minmax(0, 1fr); gap: .8rem; text-align: left !important; }
+  .responsive-cards td::before { content: attr(data-label); color: #5c6b73; font-weight: 500; }
+  .responsive-cards td[data-label="Aksi"], .responsive-cards td[colspan] { display: block; }
+  .responsive-cards td[data-label="Aksi"]::before, .responsive-cards td[colspan]::before { display: none; }
+  .responsive-cards td[data-label="Aksi"] .btn { width: 100%; margin-top: .4rem; }
+  .table-responsive:has(.responsive-cards) { overflow: visible; }
+  .d-flex.justify-content-between { flex-wrap: wrap; gap: .65rem; }
+  .booking-actions { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+  .booking-actions form, .booking-actions .btn { width: 100%; }
+}
+@media (max-width: 375px) {
+  .navbar-brand img { height: 32px !important; }
+  .navbar-brand { font-size: .85rem; }
+  .responsive-cards td { grid-template-columns: minmax(72px, 30%) minmax(0,1fr); gap: .6rem; }
+}
+
+@media (min-width: 1200px) { .navbar-brand { max-width: 370px; flex-shrink: 1; font-size: 1.1rem; } }
+@media (max-width: 767.98px) { .row { --bs-gutter-x: 1.25rem; } .navbar-brand .brand-name { white-space: normal; } }

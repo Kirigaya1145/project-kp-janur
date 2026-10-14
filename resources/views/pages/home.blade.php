@@ -160,4 +160,5 @@
         </div>
     </section>
 
+    @include('partials.home-extras')
 @endsection

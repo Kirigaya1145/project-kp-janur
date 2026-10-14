@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\DB;
 
 class AdminBookingController extends Controller
 {
+    private function notifyCustomer(Booking $booking, string $title, array $details = []): void
+    {
+        app(\App\Services\CustomerUpdateMailer::class)->booking($booking,$title,$details);
+    }
+
     public function dashboard()
     {
         $bookings = Booking::with(['rute', 'barang', 'latestInvoice.buktiPembayaran'])
@@ -26,7 +31,7 @@ class AdminBookingController extends Controller
 
     public function ruteIndex()
     {
-        $rutes = RuteHarga::orderBy('pelabuhan_asal')->orderBy('pelabuhan_tujuan')->get();
+        $rutes = RuteHarga::with('tarifs')->orderBy('pelabuhan_asal')->orderBy('pelabuhan_tujuan')->get();
 
         return view('admin.rute-index', compact('rutes'));
     }
@@ -36,17 +41,23 @@ class AdminBookingController extends Controller
         $validated = $request->validate([
             'pelabuhan_asal' => ['required', 'string', 'max:150'],
             'pelabuhan_tujuan' => ['required', 'string', 'max:150'],
-            'harga_dasar' => ['required', 'numeric', 'min:0'],
+            'harga_20' => ['required', 'numeric', 'min:1', 'max:9999999999'],
+            'harga_40' => ['required', 'numeric', 'min:1', 'max:9999999999'],
             'keterangan' => ['nullable', 'string'],
         ]);
 
-        RuteHarga::updateOrCreate(
+        DB::transaction(function () use ($validated) {
+        $rute = RuteHarga::updateOrCreate(
             [
                 'pelabuhan_asal' => $validated['pelabuhan_asal'],
                 'pelabuhan_tujuan' => $validated['pelabuhan_tujuan'],
             ],
-            $validated
+            ['harga_dasar'=>$validated['harga_20'], 'keterangan'=>$validated['keterangan'] ?? null]
         );
+        foreach ([20,40] as $size) {
+            $rute->tarifs()->updateOrCreate(['ukuran_feet'=>$size], ['harga'=>$validated['harga_'.$size]]);
+        }
+        });
 
         return back()->with('success', 'Data rute berhasil disimpan.');
     }
@@ -61,32 +72,47 @@ class AdminBookingController extends Controller
     public function offer(Request $request, Booking $booking)
     {
         $validated = $request->validate([
-            'harga_final' => ['required', 'numeric', 'min:1'],
-            'estimasi_waktu' => ['nullable', 'string', 'max:50'],
+            'harga_final' => ['required', 'numeric', 'min:1', 'max:9999999999.99', 'decimal:0,2'],
+            'estimasi_waktu' => ['required', 'integer', 'min:1', 'max:3650'],
+            'tanggal_pengiriman_usulan'=>['required','date','after_or_equal:today'],
             'keterangan' => ['nullable', 'string'],
         ]);
 
         DB::transaction(function () use ($booking, $validated) {
+            $booking=Booking::whereKey($booking->booking_id)->lockForUpdate()->firstOrFail();
+            abort_if($booking->status_booking==='dibatalkan' || $booking->status_harga==='dikonfirmasi_customer' || $booking->latestInvoice()->exists(),409,'Penawaran yang sudah disetujui tidak dapat diubah.');
             $booking->update([
-                'harga_final' => $validated['harga_final'],
+                'harga_final'  => $validated['harga_final'],
                 'status_harga' => 'sudah_ditawarkan',
                 'status_booking' => 'menunggu_konfirmasi_customer',
                 'diberikan_oleh' => Auth::id(),
-                'estimasi_waktu' => $validated['estimasi_waktu'] ?? null,
+                'estimasi_waktu' => (string)$validated['estimasi_waktu'],
+                'estimasi_hari' => $validated['estimasi_waktu'],
+                'tanggal_pengiriman_usulan' => $validated['tanggal_pengiriman_usulan'],
+                'versi_penawaran' => $booking->versi_penawaran + 1,
+                'catatan_penolakan' => null,
                 'total_harga' => $validated['harga_final'],
             ]);
             $booking->statusHistory()->create([
                 'updated_by' => Auth::id(),
                 'status' => 'diproses',
-                'keterangan' => $validated['keterangan'] ?: 'Harga final telah ditawarkan ke customer.',
+                'keterangan' => 'Penawaran #'.$booking->versi_penawaran.': total Rp '.number_format($booking->harga_final,0,',','.').'; tanggal '.$validated['tanggal_pengiriman_usulan'].'; estimasi '.$validated['estimasi_waktu'].' hari. '.($validated['keterangan'] ?? ''),
             ]);
         });
 
+        $this->notifyCustomer($booking,'Penawaran harga dan jadwal diperbarui',[
+            'Total penawaran: Rp '.number_format($validated['harga_final'],0,',','.'),
+            'Usulan tanggal pengiriman: '.$validated['tanggal_pengiriman_usulan'],
+            'Estimasi waktu: '.$validated['estimasi_waktu'].' hari',
+            $validated['keterangan'] ?? '',
+        ]);
         return back()->with('success', 'Penawaran harga final berhasil dikirim.');
     }
 
     public function invoice(Request $request, Booking $booking)
     {
+        abort_unless($booking->status_harga === 'dikonfirmasi_customer',409,'Penawaran belum disetujui.');
+        abort_if($booking->latestInvoice()->exists(),409,'Invoice sudah diterbitkan. Gunakan invoice yang ada.');
         $validated = $request->validate([
             'tanggal_invoice' => ['required', 'date'],
             'ppn_persen' => ['required', 'numeric', 'min:0'],
@@ -97,6 +123,7 @@ class AdminBookingController extends Controller
         $subtotal = (float) $booking->harga_final;
         $ppn = $subtotal * ((float) $validated['ppn_persen'] / 100);
 
+        DB::transaction(function() use ($booking,$validated,$subtotal,$ppn) {
         Invoice::updateOrCreate(
             ['booking_id' => $booking->booking_id],
             [
@@ -114,6 +141,8 @@ class AdminBookingController extends Controller
 
         $booking->update(['status_booking' => 'menunggu_pembayaran']);
 
+        });
+        $this->notifyCustomer($booking,'Invoice pengiriman diterbitkan',['Nomor invoice: '.$booking->latestInvoice->no_invoice]);
         return back()->with('success', 'Invoice berhasil diterbitkan.');
     }
 
@@ -125,28 +154,32 @@ class AdminBookingController extends Controller
         ]);
 
         DB::transaction(function () use ($bukti, $validated) {
+            $invoice=Invoice::whereKey($bukti->invoice_id)->lockForUpdate()->firstOrFail();
+            $bukti=BuktiPembayaran::whereKey($bukti->bukti_id)->lockForUpdate()->firstOrFail();
+            abort_unless($bukti->status_konfirmasi==='menunggu',409,'Bukti pembayaran sudah diverifikasi.');
             $bukti->update([
-                'status_konfirmasi' => $validated['status_konfirmasi'],
-                'dikonfirmasi_oleh' => Auth::id(),
-                'tanggal_konfirmasi' => now(),
-                'catatan_admin' => $validated['catatan_admin'] ?? null,
+                'status_konfirmasi'=>$validated['status_konfirmasi'],
+                'dikonfirmasi_oleh'=>Auth::id(),'tanggal_konfirmasi'=>now(),
+                'catatan_admin'=>$validated['catatan_admin'] ?? null,
             ]);
-
-            $invoice = $bukti->invoice;
-            $booking = $invoice->booking;
-
-            if ($validated['status_konfirmasi'] === 'dikonfirmasi') {
-                $invoice->update([
-                    'status_bayar' => 'lunas',
-                    'tanggal_lunas' => now()->toDateString(),
-                ]);
-                $booking->update(['status_booking' => 'siap_operasional']);
-            } else {
-                $invoice->update(['status_bayar' => 'belum_lunas']);
-                $booking->update(['status_booking' => 'pembayaran_ditolak']);
+            $paid=$invoice->buktiPembayaran()->where('status_konfirmasi','dikonfirmasi')->sum('jumlah_bayar');
+            $lunas=(float)$paid >= (float)$invoice->total_bayar;
+            $invoice->update(['status_bayar'=>$lunas?'lunas':'belum_lunas',
+                'tanggal_lunas'=>$lunas?($invoice->tanggal_lunas ?? today()):null]);
+            // Preserve an operational shipment's current state if another queued proof is reviewed.
+            if (!in_array($invoice->booking->status_booking,['dalam_pengiriman','diterima','selesai','dibatalkan'],true)) {
+                $invoice->booking->update(['status_booking'=>$lunas?'siap_operasional':
+                    ($validated['status_konfirmasi']==='ditolak'?'pembayaran_ditolak':'menunggu_pembayaran')]);
             }
         });
 
+        $invoice=$bukti->invoice()->firstOrFail();
+        $this->notifyCustomer($invoice->booking,'Hasil verifikasi pembayaran',[
+            'Bukti pembayaran: '.($validated['status_konfirmasi']==='dikonfirmasi'?'Dikonfirmasi':'Ditolak'),
+            'Status invoice: '.($invoice->status_bayar==='lunas'?'Lunas':'Belum Lunas'),
+            $invoice->tanggal_lunas?'Tanggal pelunasan: '.$invoice->tanggal_lunas->format('d/m/Y'):'',
+            $validated['catatan_admin'] ?? '',
+        ]);
         return back()->with('success', 'Verifikasi pembayaran berhasil disimpan.');
     }
 
@@ -195,6 +228,7 @@ class AdminBookingController extends Controller
             'nama_pengirim',
         ])->all();
 
+        DB::transaction(function() use ($booking,$containerData,$suratJalanData) {
         if (collect($containerData)->filter()->isNotEmpty()) {
             BookingContainer::updateOrCreate(['booking_id' => $booking->booking_id], $containerData);
         }
@@ -213,6 +247,16 @@ class AdminBookingController extends Controller
             'keterangan' => 'Detail operasional pengiriman diperbarui.',
         ]);
 
+        });
+        $labels=['joa_number'=>'Nomor JOA','no_container'=>'Nomor kontainer','shipping_line'=>'Shipping line',
+            'feeder_vessel'=>'Feeder vessel','connecting_vessel'=>'Connecting vessel','destination'=>'Tujuan',
+            'stuff_date'=>'Tanggal muat','etd'=>'Estimasi keberangkatan','eta'=>'Estimasi kedatangan',
+            'no_surat_jalan'=>'Nomor surat jalan','tanggal'=>'Tanggal surat jalan','kendaraan'=>'Kendaraan',
+            'nopol_kendaraan'=>'Nomor kendaraan','nama_sopir'=>'Nama sopir','penerima_kepada'=>'Penerima',
+            'lokasi_penerima'=>'Lokasi penerima','nama_pengirim'=>'Nama pengirim'];
+        $details=[];
+        foreach($validated as $key=>$value) if($value!==null && $value!=='') $details[]=($labels[$key] ?? $key).': '.$value;
+        $this->notifyCustomer($booking,'Detail operasional pengiriman diperbarui',$details);
         return back()->with('success', 'Detail operasional berhasil diperbarui.');
     }
 
@@ -223,6 +267,7 @@ class AdminBookingController extends Controller
             'keterangan' => ['required', 'string'],
         ]);
 
+        DB::transaction(function() use ($booking,$validated) {
         $booking->update(['status_booking' => $validated['status_booking']]);
         $booking->statusHistory()->create([
             'updated_by' => Auth::id(),
@@ -230,6 +275,8 @@ class AdminBookingController extends Controller
             'keterangan' => $validated['keterangan'],
         ]);
 
+        });
+        $this->notifyCustomer($booking,'Status pengiriman diperbarui',[$validated['keterangan']]);
         return back()->with('success', 'Progress pengiriman berhasil diperbarui.');
     }
 

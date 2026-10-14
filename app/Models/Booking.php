@@ -14,7 +14,8 @@ class Booking extends Model
         'rute_id', 'harga_estimasi', 'harga_final', 'status_harga', 'diberikan_oleh',
         'tanggal_konfirmasi', 'estimasi_waktu', 'tanggal_booking', 'tanggal_pengiriman',
         'waktu_muat', 'jumlah_container', 'asal', 'tujuan', 'total_harga',
-        'status_booking',
+        'status_booking', 'ukuran_container', 'harga_satuan_container', 'estimasi_hari',
+        'tanggal_pengiriman_usulan', 'catatan_penolakan', 'versi_penawaran',
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class Booking extends Model
         'tanggal_booking' => 'date',
         'tanggal_pengiriman' => 'date',
         'waktu_muat' => 'datetime',
+        'tanggal_pengiriman_usulan' => 'date',
+        'estimasi_hari' => 'integer', 'versi_penawaran' => 'integer',
     ];
 
     public function customer()

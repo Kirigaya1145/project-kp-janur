@@ -42,20 +42,22 @@
                         </div>
                     </div>
 
+                    @include('partials.booking-container-summary')
                     @if (Auth::check() && Auth::id() === $booking->user_id && $booking->status_harga === 'sudah_ditawarkan')
                         <div class="bg-white border rounded-3 p-4 mb-4">
                             <h3 class="h5 text-navy">Konfirmasi Penawaran</h3>
                             <p class="text-steel">Harga final yang ditawarkan: <strong>Rp {{ number_format($booking->harga_final, 0, ',', '.') }}</strong></p>
                             <p class="small text-steel">Jika disetujui, invoice otomatis dibuat dan Anda bisa langsung mengunggah bukti pembayaran.</p>
-                            <form method="POST" action="{{ route('booking.confirm-offer', $booking) }}" class="d-inline">
+                            <form method="POST" action="{{ route('booking.confirm-offer', $booking) }}">
                                 @csrf
-                                <input type="hidden" name="keputusan" value="setuju">
-                                <button class="btn btn-success"><i class="bi bi-check-lg me-1"></i> Setuju</button>
-                            </form>
-                            <form method="POST" action="{{ route('booking.confirm-offer', $booking) }}" class="d-inline">
-                                @csrf
-                                <input type="hidden" name="keputusan" value="tolak">
-                                <button class="btn btn-outline-danger"><i class="bi bi-x-lg me-1"></i> Tolak</button>
+                                <input type="hidden" name="versi_penawaran" value="{{ $booking->versi_penawaran }}">
+                                <div class="my-3"><label for="catatan_penolakan" class="form-label">Catatan jika menolak (opsional)</label>
+                                    <textarea id="catatan_penolakan" name="catatan_penolakan" maxlength="2000" class="form-control" placeholder="Alasan penolakan atau usulan jadwal alternatif">{{ old('catatan_penolakan') }}</textarea>
+                                </div>
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <button name="keputusan" value="setuju" class="btn btn-success flex-fill"><i class="bi bi-check-lg"></i> Setujui Penawaran</button>
+                                    <button name="keputusan" value="tolak" class="btn btn-outline-danger flex-fill"><i class="bi bi-x-lg"></i> Tolak Penawaran</button>
+                                </div>
                             </form>
                         </div>
                     @endif
@@ -71,10 +73,11 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4"><div class="small text-steel">No Invoice</div><strong>{{ $booking->latestInvoice->no_invoice }}</strong></div>
                                 <div class="col-md-4"><div class="small text-steel">Total Bayar</div><strong>Rp {{ number_format($booking->latestInvoice->total_bayar, 0, ',', '.') }}</strong></div>
-                                <div class="col-md-4"><div class="small text-steel">Status</div><span class="badge text-bg-{{ $booking->latestInvoice->status_bayar === 'lunas' ? 'success' : 'warning' }}">{{ str_replace('_', ' ', $booking->latestInvoice->status_bayar) }}</span></div>
+                                <div class="col-md-4"><div class="small text-steel">Status</div><span class="badge text-bg-{{ $booking->latestInvoice->status_bayar === 'lunas' ? 'success' : 'warning' }}">{{ $booking->latestInvoice->status_bayar==='lunas'?'Lunas':'Belum Lunas' }}</span></div>
                                 <div class="col-md-4"><div class="small text-steel">Subtotal</div><strong>Rp {{ number_format($booking->latestInvoice->subtotal, 0, ',', '.') }}</strong></div>
                                 <div class="col-md-4"><div class="small text-steel">PPN {{ number_format($booking->latestInvoice->ppn_persen, 2, ',', '.') }}%</div><strong>Rp {{ number_format($booking->latestInvoice->ppn_nominal, 0, ',', '.') }}</strong></div>
                             </div>
+                            @include('partials.invoice-settlement',['invoice'=>$booking->latestInvoice])
                             @if (Auth::check() && Auth::id() === $booking->user_id && $booking->latestInvoice->status_bayar !== 'lunas')
                                 <form method="POST" action="{{ route('invoice.upload-payment', $booking->latestInvoice) }}" enctype="multipart/form-data" class="row g-3">
                                     @csrf

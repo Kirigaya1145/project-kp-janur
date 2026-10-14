@@ -14,6 +14,8 @@ class RuteHarga extends Model
         'pelabuhan_asal', 'pelabuhan_tujuan', 'harga_dasar', 'keterangan',
     ];
 
+    public function tarifs() { return $this->hasMany(TarifContainer::class, 'rute_id', 'rute_id'); }
+
     public function bookings()
     {
         return $this->hasMany(Booking::class, 'rute_id', 'rute_id');

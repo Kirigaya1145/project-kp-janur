@@ -33,7 +33,7 @@ class BookingController extends Controller
     public function create()
     {
         //
-        $rutes = RuteHarga::orderBy('pelabuhan_asal')->orderBy('pelabuhan_tujuan')->get();
+        $rutes = RuteHarga::with('tarifs')->orderBy('pelabuhan_asal')->orderBy('pelabuhan_tujuan')->get();
 
         return view('pages.booking-create', compact('rutes'));
     }
@@ -50,10 +50,11 @@ class BookingController extends Controller
             'no_hp_customer' => ['required', 'string', 'max:20'],
             'rute_id' => ['required', 'exists:rute_harga,rute_id'],
             'tanggal_pengiriman' => ['required', 'date', 'after_or_equal:today'],
-            'jumlah_container' => ['required', 'integer', 'min:1'],
-            'barang' => ['required', 'array', 'min:1'],
+            'jumlah_container' => ['required', 'integer', 'min:1', 'max:9999'],
+            'ukuran_container' => ['required', 'integer', 'in:20,40'],
+            'barang' => ['required', 'array', 'min:1', 'max:100'],
             'barang.*.nama_barang' => ['required', 'string', 'max:150'],
-            'barang.*.kategori_barang' => ['nullable', 'string', 'max:100'],
+            'barang.*.kategori_barang' => ['required', 'in:Dry,Reefer,Liquid'],
             'barang.*.qty' => ['required', 'integer', 'min:1'],
             'barang.*.berat_kg' => ['nullable', 'numeric', 'min:0'],
             'barang.*.keterangan' => ['nullable', 'string'],
@@ -61,8 +62,15 @@ class BookingController extends Controller
 
         DB::transaction(function () use ($validated) {
             $rute = RuteHarga::findOrFail($validated['rute_id']);
-            $hargaEstimasi = (int) $validated['jumlah_container'] * (float) $rute->harga_dasar;
+            $tarif = $rute->tarifs()->where('ukuran_feet', $validated['ukuran_container'])->first();
+            if (!$tarif || $tarif->harga <= 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['ukuran_container'=>'Tarif ukuran kontainer untuk rute ini belum tersedia.']);
+            }
+            $hargaEstimasi = (int) $validated['jumlah_container'] * (float) $tarif->harga;
 
+            if ($hargaEstimasi > 9999999999.99) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['jumlah_container'=>'Total estimasi melebihi batas transaksi. Hubungi admin.']);
+            }
             $booking = Booking::create([
                 'kode_booking' => $this->generateKodeBooking(),
                 'user_id' => Auth::id(),
@@ -71,6 +79,8 @@ class BookingController extends Controller
                 'no_hp_customer' => $validated['no_hp_customer'],
                 'rute_id' => $rute->rute_id,
                 'harga_estimasi' => $hargaEstimasi,
+                'ukuran_container' => $validated['ukuran_container'],
+                'harga_satuan_container' => $tarif->harga,
                 'status_harga' => 'menunggu_penawaran',
                 'status_booking' => 'menunggu_penawaran',
                 'tanggal_booking' => now()->toDateString(),
@@ -129,52 +139,57 @@ class BookingController extends Controller
 
         $booking->load(['rute', 'barang', 'statusHistory.updater', 'latestInvoice.buktiPembayaran', 'container', 'suratJalan']);
 
+        if (!Auth::check() || ((int)Auth::id() !== (int)$booking->user_id && !in_array(Auth::user()->role,['admin','staff'],true))) {
+            return view('pages.booking-public', compact('booking'));
+        }
         return view('pages.booking-cek', compact('booking'));
     }
 
     public function confirmOffer(Request $request, Booking $booking)
     {
-        abort_unless($booking->user_id === Auth::id(), 403);
-
+        abort_unless((int)$booking->user_id === (int)Auth::id(), 403);
         $validated = $request->validate([
-            'keputusan' => ['required', 'in:setuju,tolak'],
+            'keputusan'=>['required','in:setuju,tolak'],
+            'versi_penawaran'=>['required','integer','min:1'],
+            'catatan_penolakan'=>['nullable','string','max:2000'],
         ]);
-
-        if ($validated['keputusan'] === 'setuju') {
-            DB::transaction(function () use ($booking) {
+        DB::transaction(function() use ($booking,$validated) {
+            $booking=Booking::whereKey($booking->booking_id)->lockForUpdate()->firstOrFail();
+            abort_unless($booking->status_harga==='sudah_ditawarkan' &&
+                $booking->versi_penawaran===(int)$validated['versi_penawaran'],409,'Penawaran sudah berubah. Muat ulang halaman.');
+            if ($validated['keputusan']==='setuju') {
+                $tanggal=$booking->tanggal_pengiriman_usulan ?? $booking->tanggal_pengiriman;
+                if (!$tanggal || $tanggal->startOfDay()->lt(today())) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['tanggal_pengiriman'=>'Tanggal penawaran sudah lewat. Minta admin memperbarui jadwal.']);
+                }
                 $booking->update([
-                    'status_harga' => 'dikonfirmasi_customer',
-                    'status_booking' => 'menunggu_pembayaran',
-                    'tanggal_konfirmasi' => now(),
+                    'status_harga'=>'dikonfirmasi_customer','status_booking'=>'menunggu_pembayaran',
+                    'tanggal_konfirmasi'=>now(),'tanggal_pengiriman'=>$tanggal->toDateString(),
+                    'catatan_penolakan'=>null,
                 ]);
-
                 $this->createInvoiceForBooking($booking);
-
-                $booking->statusHistory()->create([
-                    'updated_by' => Auth::id(),
-                    'status' => 'diproses',
-                    'keterangan' => 'Customer menyetujui penawaran. Invoice otomatis diterbitkan.',
+            } else {
+                $booking->update([
+                    'status_harga'=>'ditolak_customer','status_booking'=>'penawaran_ditolak',
+                    'tanggal_konfirmasi'=>now(),'catatan_penolakan'=>$validated['catatan_penolakan'] ?? null,
                 ]);
-            });
-
-            return back()->with('success', 'Penawaran disetujui. Invoice sudah tersedia untuk pembayaran.');
-        }
-
-        $booking->update([
-            'status_harga' => 'ditolak_customer',
-            'status_booking' => 'penawaran_ditolak',
-            'tanggal_konfirmasi' => now(),
-        ]);
-
-        return back()->with('success', 'Penawaran ditolak. Tim kami akan meninjau ulang booking Anda.');
+            }
+            $booking->statusHistory()->create([
+                'updated_by'=>Auth::id(),'status'=>'diproses',
+                'keterangan'=>$validated['keputusan']==='setuju' ? 'Customer menyetujui harga total dan jadwal penawaran.' :
+                    'Customer menolak penawaran. Catatan: '.($validated['catatan_penolakan'] ?? '-'),
+            ]);
+        });
+        return back()->with('success',$validated['keputusan']==='setuju' ? 'Penawaran disetujui. Invoice tersedia.' : 'Penawaran ditolak. Catatan dikirim kepada admin.');
     }
 
     public function uploadPayment(Request $request, Invoice $invoice)
     {
         abort_unless($invoice->booking && $invoice->booking->user_id === Auth::id(), 403);
 
+        abort_if($invoice->status_bayar === 'lunas', 409, 'Invoice sudah lunas.');
         $validated = $request->validate([
-            'jumlah_bayar' => ['required', 'numeric', 'min:1'],
+            'jumlah_bayar' => ['required', 'numeric', 'min:1', 'max:9999999999.99', 'decimal:0,2'],
             'file_bukti' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ]);
 
@@ -220,9 +235,7 @@ class BookingController extends Controller
 
     private function generateKodeBooking()
     {
-        $lastId = (Booking::max('booking_id') ?? 0) + 1;
-
-        return 'BKJ-' . str_pad($lastId, 3, '0', STR_PAD_LEFT);
+        return 'BKJ-' . strtoupper(bin2hex(random_bytes(6)));
     }
 
     private function createInvoiceForBooking(Booking $booking): void

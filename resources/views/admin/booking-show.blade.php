@@ -7,6 +7,7 @@
     $suratJalan = $booking->suratJalan->first();
 
     $hasOffer = ! is_null($booking->harga_final);
+    $canOffer = $booking->status_harga !== 'dikonfirmasi_customer' && !$booking->latestInvoice && $booking->status_booking !== 'dibatalkan';
     $hasContainer = $container && collect($container->only([
         'joa_number', 'no_container', 'shipping_line', 'feeder_vessel', 'connecting_vessel', 'destination',
     ]))->filter()->isNotEmpty();
@@ -115,7 +116,7 @@
                 <div class="bg-white border rounded-3 p-4 mb-4 @if($actionNeeded && str_contains($actionNeeded[1], 'penawaran harga')) border-warning @endif">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2 class="h5 text-navy mb-0">Penawaran Harga Final</h2>
-                        @if ($hasOffer)
+                        @if ($hasOffer && $canOffer)
                             <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="collapse" data-bs-target="#formPenawaran">
                                 <i class="bi bi-pencil me-1"></i> Ubah
                             </button>
@@ -124,21 +125,24 @@
 
                     @if ($hasOffer)
                         <div class="row g-3 mb-2">
-                            <div class="col-6"><div class="small text-steel">Harga Final</div><strong>Rp {{ number_format($booking->harga_final, 0, ',', '.') }}</strong></div>
-                            <div class="col-6"><div class="small text-steel">Estimasi Waktu</div><strong>{{ $booking->estimasi_waktu ?? '-' }}</strong></div>
+                            <div class="col-12 col-sm-6"><div class="small text-steel">Harga Final</div><strong>Rp {{ number_format($booking->harga_final, 0, ',', '.') }}</strong></div>
+                            <div class="col-12 col-sm-6"><div class="small text-steel">Estimasi Waktu</div><strong>{{ $booking->estimasi_hari ? $booking->estimasi_hari.' hari' : ($booking->estimasi_waktu ?? '-') }}</strong></div>
                         </div>
                     @endif
 
+                    @if($canOffer)
                     <div id="formPenawaran" class="{{ $hasOffer ? 'collapse' : '' }}">
                         <form method="POST" action="{{ route('admin.booking.offer', $booking) }}" class="{{ $hasOffer ? 'pt-2 border-top mt-2' : '' }}">
                             @csrf
                             <div class="mb-3">
-                                <label class="form-label">Harga Final</label>
+                                <label class="form-label">Total Harga Penawaran (Rp)</label>
                                 <input type="number" name="harga_final" class="form-control" value="{{ old('harga_final', $booking->harga_final) }}" min="1" required>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Estimasi Waktu</label>
-                                <input type="text" name="estimasi_waktu" class="form-control" value="{{ old('estimasi_waktu', $booking->estimasi_waktu) }}" placeholder="Contoh: 7-10 hari">
+                                <label class="form-label">Estimasi Waktu Pengiriman (hari)</label>
+                                <input type="number" min="1" max="3650" name="estimasi_waktu" class="form-control" value="{{ old('estimasi_waktu', $booking->estimasi_hari) }}" placeholder="Contoh: 7" required>
+                            </div><div class="mb-3"><label class="form-label">Usulan Tanggal Pengiriman</label>
+                            <input type="date" name="tanggal_pengiriman_usulan" min="{{ today()->toDateString() }}" class="form-control" value="{{ old('tanggal_pengiriman_usulan',optional($booking->tanggal_pengiriman_usulan ?? $booking->tanggal_pengiriman)->format('Y-m-d')) }}" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Catatan</label>
@@ -147,8 +151,11 @@
                             <button class="btn btn-accent w-100">{{ $hasOffer ? 'Simpan Perubahan' : 'Kirim Penawaran' }}</button>
                         </form>
                     </div>
+                    @endif
                 </div>
 
+                @if($booking->catatan_penolakan)<div class="alert alert-warning">Catatan penolakan customer: {{ $booking->catatan_penolakan }}</div>@endif
+                @include('partials.booking-container-summary')
                 {{-- ===== INVOICE ===== --}}
                 <div class="bg-white border rounded-3 p-4 mb-4">
                     <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-3">
@@ -162,6 +169,7 @@
                     @if ($booking->latestInvoice)
                         <div class="small text-steel">No Invoice</div>
                         <div class="fw-semibold mb-2">{{ $booking->latestInvoice->no_invoice }}</div>
+                        @include('partials.invoice-settlement',['invoice'=>$booking->latestInvoice])
                         <div class="d-flex justify-content-between small"><span>Subtotal</span><strong>Rp {{ number_format($booking->latestInvoice->subtotal, 0, ',', '.') }}</strong></div>
                         <div class="d-flex justify-content-between small"><span>PPN {{ number_format($booking->latestInvoice->ppn_persen, 2, ',', '.') }}%</span><strong>Rp {{ number_format($booking->latestInvoice->ppn_nominal, 0, ',', '.') }}</strong></div>
                         <hr>

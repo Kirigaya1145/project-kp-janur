@@ -145,30 +145,12 @@
             border: 0;
             padding: 2px 0;
         }
-        .signature {
-            height: 150px;
-            position: relative;
-            padding: 0 14px;
-        }
-        .signature-name {
-            position: absolute;
-            left: 14px;
-            right: 14px;
-            bottom: 22px;
-            text-align: center;
-            font-size: 15px;
-        }
-        .signature-label {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border-top: 2px solid #222;
-            text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            padding-top: 2px;
-        }
+        .signature { height: 150px; padding: 12px 14px 6px; vertical-align: middle !important; text-align: center; }
+        .signature-image-box { height: 66px; text-align: center; padding-top: 6px; }
+        .signature-image { display: inline-block; width: 145px; height: 54px; }
+        .signature-name { margin-top: 8px; margin-bottom: 8px; text-align: center; font-size: 12px; }
+        .signature-label { border-top: 1px solid #222; padding-top: 6px; text-align: center; font-size: 11px; font-weight: bold; }
+        .payment-status { margin-top: 8px; font-size: 10px; letter-spacing: 0; }
     </style>
 </head>
 <body>
@@ -261,7 +243,7 @@
                     <tr>
                         <td>Quantity</td>
                         <td class="colon">:</td>
-                        <td>{{ $booking->jumlah_container }} X 20' DRY</td>
+                        <td>{{ $booking->jumlah_container }} X {{ $booking->ukuran_container ?? '—' }} feet</td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -322,10 +304,17 @@
                 </table>
             </td>
             <td class="signature">
-                <div class="signature-name">( PENANDA TANGAN )</div>
+                <div class="signature-image-box">
+                    @if($invoice->status_bayar==='lunas')
+                    <img class="signature-image" src="{{ public_path('images/signature-dummy.jpg') }}" alt="Tanda tangan dummy">
+                    @endif
+                </div>
+                <div class="signature-name">{{ $invoice->status_bayar==='lunas'?'( TANDA TANGAN DUMMY )':'( PENANDA TANGAN )' }}</div>
                 <div class="signature-label">Authorized Signature</div>
             </td>
         </tr>
     </table>
+<p class="payment-status">Status Pembayaran: <strong>{{ $invoice->status_bayar==='lunas'?'Lunas':'Belum Lunas' }}</strong>
+@if($invoice->status_bayar==='lunas') | Tanggal Pelunasan: {{ optional($invoice->tanggal_lunas)->format('d/m/Y') ?? '-' }} @endif</p>
 </body>
 </html>

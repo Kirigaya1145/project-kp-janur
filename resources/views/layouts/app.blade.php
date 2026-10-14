@@ -83,6 +83,7 @@
         }
     </style>
 
+    <link rel="stylesheet" href="{{ asset('css/janur-responsive.css') }}">
     @stack('styles')
 </head>
 <body>
@@ -101,11 +102,17 @@
             </div>
         @endif
 
+        @if($errors->any())
+        <div class="container mt-3"><div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div></div>
+        @endif
+        @if(session('email_warning'))<div class="container mt-3"><div class="alert alert-warning">{{ session('email_warning') }}</div></div>@endif
         @yield('content')
     </main>
 
     @include('partials.footer')
 
+    @php($wa=preg_replace('/\D/','',(string)config('contact.whatsapp')))
+    @if($wa && !request()->is('admin*') && !(Auth::check() && in_array(Auth::user()->role,['admin','staff'],true)))<a aria-label="Hubungi via WhatsApp" class="btn btn-success rounded-pill shadow wa-float" href="https://wa.me/{{ $wa }}?text={{ rawurlencode(config('contact.message')) }}" target="_blank" rel="noopener noreferrer"><i class="bi bi-whatsapp"></i> WhatsApp</a>@endif
     @stack('scripts')
 </body>
 </html>

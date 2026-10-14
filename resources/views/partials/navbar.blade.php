@@ -1,10 +1,10 @@
-<nav class="navbar navbar-expand-lg navbar-janur sticky-top py-3">
+<nav class="navbar navbar-expand-xl navbar-janur sticky-top py-3">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url('/') }}">
             <img src="{{ asset($companyProfile->logo ?? 'images/logo-janur-nobg.png') }}" alt="Logo PT Janur Tangguh Abadi" style="height: 42px; width: auto;">
-            PT Janur Tangguh Abadi
+            <span class="brand-name">PT Janur Tangguh Abadi</span>
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Buka menu navigasi">
             <span class="navbar-toggler-icon"></span>
         </button>
 
@@ -40,6 +40,10 @@
                                 <li><a class="dropdown-item" href="{{ url('/admin/dashboard') }}">Dashboard Admin</a></li>
                             @else
                                 <li><a class="dropdown-item" href="{{ url('/booking/riwayat') }}">Riwayat Booking</a></li>
+                            @endif
+                            <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Edit Profil</a></li>
+                            @if(Auth::user()->role==='admin')
+                            <li><a class="dropdown-item" href="{{ route('admin.accounts.index') }}">Kelola Akun</a></li>
                             @endif
                             <li><hr class="dropdown-divider"></li>
                             <li>
